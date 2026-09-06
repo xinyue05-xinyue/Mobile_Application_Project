@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../data/remote/organisation_profile_repository.dart';
+
 class StaffShell extends StatefulWidget {
   const StaffShell({
     super.key,
@@ -20,20 +22,32 @@ class _StaffShellState extends State<StaffShell> {
   int selectedIndex = 0;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: IndexedStack(
-      index: selectedIndex,
-      children: [widget.mainPage, widget.profilePage],
-    ),
-    bottomNavigationBar: _CurvedRoleNavigation(
-      selectedIndex: selectedIndex,
-      onSelected: (index) => setState(() => selectedIndex = index),
-      onScan: widget.scannerPage == null
-          ? null
-          : () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => widget.scannerPage!),
-            ),
+  Widget build(BuildContext context) => ValueListenableBuilder<int>(
+    valueListenable: OrganisationProfileRepository.revision,
+    builder: (context, profileRevision, _) => Scaffold(
+      body: IndexedStack(
+        index: selectedIndex,
+        children: [
+          KeyedSubtree(
+            key: ValueKey('staff-main-$profileRevision'),
+            child: widget.mainPage,
+          ),
+          KeyedSubtree(
+            key: ValueKey('staff-profile-$profileRevision'),
+            child: widget.profilePage,
+          ),
+        ],
+      ),
+      bottomNavigationBar: _CurvedRoleNavigation(
+        selectedIndex: selectedIndex,
+        onSelected: (index) => setState(() => selectedIndex = index),
+        onScan: widget.scannerPage == null
+            ? null
+            : () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => widget.scannerPage!),
+              ),
+      ),
     ),
   );
 }

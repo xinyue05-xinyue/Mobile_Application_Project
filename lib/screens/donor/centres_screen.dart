@@ -20,13 +20,14 @@ class CentresScreen extends StatefulWidget {
 
 class _CentresScreenState extends State<CentresScreen> {
   final searchController = TextEditingController();
+  final searchFocusNode = FocusNode();
   final syncService = DataSyncService();
   final governmentRepository = GovernmentDataRepository();
   final officialRepository = OfficialCentreRepository();
   final mapController = MapController();
   final addressCache = <String, Future<String>>{};
   late Future<_CentreData> data;
-  String query = '';
+  DonationCentre? selectedCentre;
   Position? userPosition;
   bool locating = false;
 
@@ -39,6 +40,7 @@ class _CentresScreenState extends State<CentresScreen> {
   @override
   void dispose() {
     searchController.dispose();
+    searchFocusNode.dispose();
     mapController.dispose();
     super.dispose();
   }
@@ -116,23 +118,29 @@ class _CentresScreenState extends State<CentresScreen> {
     );
   }
 
-  List<DonationCentre> filteredCentres(List<DonationCentre> centres) {
-    final search = query.trim().toLowerCase();
-    final matches =
-        (search.isEmpty
-                ? centres
-                : centres.where((centre) {
-                    return centre.name.toLowerCase().contains(search) ||
-                        centre.address.toLowerCase().contains(search) ||
-                        centre.state.toLowerCase().contains(search);
-                  }))
-            .toList();
+  List<DonationCentre> displayedCentres(List<DonationCentre> centres) {
+    final matches = selectedCentre == null
+        ? centres.toList()
+        : <DonationCentre>[selectedCentre!];
     if (userPosition != null) {
       matches.sort(
         (first, second) => distanceTo(first).compareTo(distanceTo(second)),
       );
     }
     return matches;
+  }
+
+  Iterable<DonationCentre> centreSuggestions(
+    TextEditingValue value,
+    List<DonationCentre> centres,
+  ) {
+    final search = value.text.trim().toLowerCase();
+    if (search.isEmpty) return const Iterable<DonationCentre>.empty();
+    return centres.where((centre) {
+      return centre.name.toLowerCase().contains(search) ||
+          centre.address.toLowerCase().contains(search) ||
+          centre.state.toLowerCase().contains(search);
+    }).take(6);
   }
 
   double distanceTo(DonationCentre centre) {
@@ -251,7 +259,7 @@ class _CentresScreenState extends State<CentresScreen> {
           }
           final value =
               snapshot.data ?? const _CentreData([], [], false, false);
-          final centres = filteredCentres(value.centres);
+          final centres = displayedCentres(value.centres);
           return RefreshIndicator(
             onRefresh: () async => setState(() {
               data = loadData();
@@ -284,13 +292,79 @@ class _CentresScreenState extends State<CentresScreen> {
                   ),
                   const SizedBox(height: 8),
                 ],
-                TextField(
-                  controller: searchController,
-                  onChanged: (value) => setState(() => query = value),
-                  decoration: const InputDecoration(
-                    labelText: 'Search facilities and event venues',
-                    prefixIcon: Icon(Icons.search),
+                RawAutocomplete<DonationCentre>(
+                  textEditingController: searchController,
+                  focusNode: searchFocusNode,
+                  displayStringForOption: (centre) => centre.name,
+                  optionsBuilder: (text) => centreSuggestions(
+                    text,
+                    value.centres,
                   ),
+                  onSelected: (centre) {
+                    setState(() => selectedCentre = centre);
+                    searchFocusNode.unfocus();
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) showCentre(centre);
+                    });
+                  },
+                  fieldViewBuilder:
+                      (context, controller, focusNode, onSubmitted) =>
+                          TextField(
+                            controller: controller,
+                            focusNode: focusNode,
+                            onChanged: (_) {
+                              if (selectedCentre != null) {
+                                setState(() => selectedCentre = null);
+                              }
+                            },
+                            onSubmitted: (_) => onSubmitted(),
+                            decoration: const InputDecoration(
+                              labelText:
+                                  'Search facilities and event venues',
+                              prefixIcon: Icon(Icons.search),
+                            ),
+                          ),
+                  optionsViewBuilder: (context, onSelected, options) {
+                    final matches = options.toList();
+                    return Align(
+                      alignment: Alignment.topLeft,
+                      child: Material(
+                        elevation: 8,
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        clipBehavior: Clip.antiAlias,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.sizeOf(context).width - 32,
+                            maxHeight: 330,
+                          ),
+                          child: ListView.separated(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            itemCount: matches.length,
+                            separatorBuilder: (_, _) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final centre = matches[index];
+                              return ListTile(
+                                leading: const Icon(
+                                  Icons.local_hospital_outlined,
+                                  color: AppTheme.donor,
+                                ),
+                                title: Text(centre.name),
+                                subtitle: Text(
+                                  '${centre.address}\n${centre.state}',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onTap: () => onSelected(centre),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(

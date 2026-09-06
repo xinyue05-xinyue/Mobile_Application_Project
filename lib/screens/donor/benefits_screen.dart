@@ -120,7 +120,7 @@ class _DonorBenefitsScreenState extends State<DonorBenefitsScreen> {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 4),
-          const Text('Prototype partner benefits for this recognition level.'),
+          const Text('Benefits available for this recognition level.'),
           const SizedBox(height: 10),
           _BenefitGroup(
             color: tiers[activePage].$3,
@@ -344,53 +344,53 @@ class _TierHero extends StatelessWidget {
 List<(IconData, String, String)> _myDarahBenefits(int tier) => switch (tier) {
   0 => const [
     (
-      Icons.workspace_premium_outlined,
-      'Bronze digital medal',
-      'Recognition badge and donation milestone record.',
+      Icons.biotech_outlined,
+      '5% off selected blood tests',
+      '',
     ),
     (
-      Icons.notifications_active_outlined,
-      'Priority reminders',
-      'Early reminders for suitable nearby donation events.',
+      Icons.medication_outlined,
+      '5% off selected over-the-counter medicines',
+      '',
     ),
     (
-      Icons.menu_book_outlined,
-      'Donor wellness guide',
-      'Blood donation preparation and recovery information.',
+      Icons.health_and_safety_outlined,
+      'Discounted basic health screening',
+      '',
     ),
   ],
   1 => const [
     (
+      Icons.biotech_outlined,
+      '10% off selected blood tests',
+      '',
+    ),
+    (
+      Icons.medication_outlined,
+      '10% off selected over-the-counter medicines',
+      '',
+    ),
+    (
       Icons.health_and_safety_outlined,
-      'Basic health screening',
-      'Proposed complimentary screening with a participating healthcare partner.',
-    ),
-    (
-      Icons.event_available_outlined,
-      'Priority event booking',
-      'Earlier access to limited-capacity MyDarah campaigns.',
-    ),
-    (
-      Icons.card_giftcard_outlined,
-      'Silver appreciation pack',
-      'Proposed donor merchandise from participating partners.',
+      'Free basic health screening once a year',
+      '',
     ),
   ],
   _ => const [
     (
+      Icons.biotech_outlined,
+      'Annual free basic blood test',
+      '',
+    ),
+    (
+      Icons.medication_outlined,
+      '15% off selected medicines and health products',
+      '',
+    ),
+    (
       Icons.monitor_heart_outlined,
-      'Enhanced health screening',
-      'Proposed annual screening with a participating healthcare partner.',
-    ),
-    (
-      Icons.support_agent_outlined,
-      'Priority donor support',
-      'Priority assistance for MyDarah events and records.',
-    ),
-    (
-      Icons.celebration_outlined,
-      'Gold recognition event',
-      'Invitation to selected donor appreciation activities.',
+      'Annual comprehensive health screening at a special rate',
+      '',
     ),
   ],
 };
@@ -437,7 +437,9 @@ class _BenefitGroup extends StatelessWidget {
               child: Icon(benefits[index].$1),
             ),
             title: Text(benefits[index].$2),
-            subtitle: Text(benefits[index].$3),
+            subtitle: benefits[index].$3.isEmpty
+                ? null
+                : Text(benefits[index].$3),
           ),
           if (index != benefits.length - 1) const Divider(height: 1),
         ],

@@ -142,12 +142,21 @@ class _InstitutionProfileFormScreenState
         latitude: location?.latitude,
         longitude: location?.longitude,
       );
-      if (mounted) Navigator.pop(context, true);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile updated.')));
+      Navigator.pop(context, true);
     } on PostgrestException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to save profile: $error')),
+      );
     } finally {
       if (mounted) setState(() => saving = false);
     }

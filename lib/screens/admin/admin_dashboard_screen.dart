@@ -80,7 +80,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
             children: [
-              const SignedInIdentityCard(roleLabel: 'Organisation admin'),
+              const SignedInIdentityCard(
+                roleLabel: 'Organisation admin',
+                useInstitutionProfile: true,
+              ),
               const SizedBox(height: 18),
               Text(
                 'Today at a glance',

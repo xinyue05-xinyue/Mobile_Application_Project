@@ -29,6 +29,18 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
   void initState() {
     super.initState();
     profile = loadProfile();
+    OrganisationProfileRepository.revision.addListener(profileChanged);
+  }
+
+  @override
+  void dispose() {
+    OrganisationProfileRepository.revision.removeListener(profileChanged);
+    super.dispose();
+  }
+
+  void profileChanged() {
+    if (!mounted) return;
+    setState(refresh);
   }
 
   Future<OrganisationProfile?> loadProfile() {
@@ -37,11 +49,7 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
     return OrganisationProfileRepository(client).getMine();
   }
 
-  Future<void> refresh() async {
-    final refreshed = loadProfile();
-    setState(() => profile = refreshed);
-    await refreshed;
-  }
+  void refresh() => profile = loadProfile();
 
   Future<void> edit(OrganisationProfile? value) async {
     final updated = await Navigator.push<bool>(
@@ -55,7 +63,7 @@ class _StaffProfileScreenState extends State<StaffProfileScreen> {
         ),
       ),
     );
-    if (updated == true && mounted) await refresh();
+    if (updated == true && mounted) setState(refresh);
   }
 
   @override

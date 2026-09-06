@@ -182,7 +182,10 @@ class _HospitalDashboardScreenState extends State<HospitalDashboardScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
               children: [
-                const SignedInIdentityCard(roleLabel: 'Hospital staff'),
+                const SignedInIdentityCard(
+                  roleLabel: 'Hospital staff',
+                  useInstitutionProfile: true,
+                ),
                 const SizedBox(height: 16),
                 _HospitalHero(
                   activeCount: activeCount,
