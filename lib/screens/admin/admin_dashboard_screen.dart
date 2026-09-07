@@ -173,7 +173,7 @@ class _FocusEventCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                active ? 'Event happening now' : 'Next event',
+                active ? 'Event happening now' : 'Next event ',
                 style: const TextStyle(
                   color: AppTheme.organisation,
                   fontWeight: FontWeight.w700,
