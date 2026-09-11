@@ -2,8 +2,8 @@
 
 **MyDarah** is a mobile blood donation application designed to provide a one-stop platform for blood donation information and services in Malaysia.
 
-The application helps users find blood donation centres and events, manage donation records, receive emergency blood requests & reminders and access blood donation information conveniently. 
-It also provides administrative functions for managing users, events, feedback, statistics and other blood donation activities.
+The application helps users find blood donation centres and events, manage donation records, receive emergency blood requests and reminders and access blood donation information conveniently.
+It also provides administrative functions for managing users, events, feedback, statistics, and other blood donation activities.
 
 ## 📱 Main Features
 MyDarah is organised into four main service groups:
