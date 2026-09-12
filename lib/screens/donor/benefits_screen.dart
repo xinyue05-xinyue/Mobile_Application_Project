@@ -210,18 +210,26 @@ class _TierHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final target = title == 'Bronze'
+    final tierStart = title == 'Bronze'
         ? 1
         : title == 'Silver'
         ? 6
         : 16;
-    final next = title == 'Bronze'
-        ? 6
+    final tierCapacity = title == 'Bronze'
+        ? 5
         : title == 'Silver'
-        ? 16
-        : null;
-    final displayTarget = next ?? target;
-    final progress = (donationCount / displayTarget).clamp(0.0, 1.0);
+        ? 10
+        : 16;
+    final tierProgress = title == 'Bronze'
+        ? donationCount.clamp(0, 5)
+        : title == 'Silver'
+        ? (donationCount - 5).clamp(0, 10)
+        : donationCount.clamp(0, 16);
+    final progress = (tierProgress / tierCapacity).clamp(0.0, 1.0);
+    final isLocked = donationCount < tierStart;
+    final isGoldCurrent = title == 'Gold' && isCurrent;
+    final showProgress = !isLocked && title != 'Gold';
+    final donationsNeeded = (tierStart - donationCount).clamp(0, tierStart);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       padding: const EdgeInsets.all(24),
@@ -243,7 +251,7 @@ class _TierHero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (isCurrent)
+          if (isCurrent && !isLocked)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -262,7 +270,7 @@ class _TierHero extends StatelessWidget {
             )
           else
             Text(
-              donationCount >= target ? 'LEVEL ACHIEVED' : 'LOCKED LEVEL',
+              isLocked ? 'LOCKED LEVEL' : 'LEVEL ACHIEVED',
               style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 11,
@@ -295,46 +303,67 @@ class _TierHero extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              isCurrent
+              isLocked
+                  ? '$donationsNeeded more verified ${donationsNeeded == 1 ? 'donation' : 'donations'} to unlock $title'
+                  : isCurrent
                   ? '$donationCount verified donation${donationCount == 1 ? '' : 's'}'
-                  : 'Unlocks at $target verified donation${target == 1 ? '' : 's'}',
+                  : 'Completed recognition level',
               style: const TextStyle(color: Colors.white),
             ),
           ),
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 13,
-              color: Colors.white,
-              backgroundColor: Colors.white30,
+          if (showProgress) ...[
+            const SizedBox(height: 14),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 13,
+                color: Colors.white,
+                backgroundColor: Colors.white30,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                isCurrent
-                    ? (next == null
-                          ? 'Long-term recognition'
-                          : 'Next level at $next')
-                    : 'Progress towards $title',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  isCurrent
+                      ? title == 'Bronze'
+                            ? 'Progress through Bronze'
+                            : 'Progress through Silver'
+                      : '$title completed',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-              Text(
-                '$donationCount / $displayTarget',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
+                Text(
+                  '$tierProgress / $tierCapacity',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ] else if (isGoldCurrent) ...[
+            const SizedBox(height: 18),
+            const Row(
+              children: [
+                Icon(Icons.verified_rounded, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'You have reached the highest donor level.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -343,28 +372,16 @@ class _TierHero extends StatelessWidget {
 
 List<(IconData, String, String)> _myDarahBenefits(int tier) => switch (tier) {
   0 => const [
-    (
-      Icons.biotech_outlined,
-      '5% off selected blood tests',
-      '',
-    ),
+    (Icons.biotech_outlined, '5% off selected blood tests', ''),
     (
       Icons.medication_outlined,
       '5% off selected over-the-counter medicines',
       '',
     ),
-    (
-      Icons.health_and_safety_outlined,
-      'Discounted basic health screening',
-      '',
-    ),
+    (Icons.health_and_safety_outlined, 'Discounted basic health screening', ''),
   ],
   1 => const [
-    (
-      Icons.biotech_outlined,
-      '10% off selected blood tests',
-      '',
-    ),
+    (Icons.biotech_outlined, '10% off selected blood tests', ''),
     (
       Icons.medication_outlined,
       '10% off selected over-the-counter medicines',
@@ -377,11 +394,7 @@ List<(IconData, String, String)> _myDarahBenefits(int tier) => switch (tier) {
     ),
   ],
   _ => const [
-    (
-      Icons.biotech_outlined,
-      'Annual free basic blood test',
-      '',
-    ),
+    (Icons.biotech_outlined, 'Annual free basic blood test', ''),
     (
       Icons.medication_outlined,
       '15% off selected medicines and health products',

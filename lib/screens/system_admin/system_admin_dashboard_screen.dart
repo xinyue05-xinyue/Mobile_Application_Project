@@ -9,6 +9,8 @@ import '../../models/role_request.dart';
 import '../../widgets/notification_button.dart';
 import '../../widgets/signed_in_identity_card.dart';
 import '../statistics_screen.dart';
+import 'feedback_inbox_screen.dart';
+import 'manage_rewards_screen.dart';
 import 'user_directory_screen.dart';
 
 class SystemAdminDashboardScreen extends StatefulWidget {
@@ -244,6 +246,39 @@ class _SystemAdminDashboardScreenState
                       icon: Icons.pending_actions_outlined,
                     ),
                   ],
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.redeem_outlined),
+                    title: const Text('Manage redeem rewards'),
+                    subtitle: const Text(
+                      'Create rewards and manage images, icons, points and stock.',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ManageRewardsScreen(),
+                      ),
+                    ),
+                  ),
+                ),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.feedback_outlined),
+                    title: const Text('Feedback inbox'),
+                    subtitle: const Text(
+                      'Read feedback, reply and update its status.',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const FeedbackInboxScreen(),
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Text(

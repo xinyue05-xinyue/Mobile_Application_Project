@@ -20,17 +20,11 @@ class DonorLevel {
   }
 
   static double progress(int donationCount) {
-    final target = nextTarget(donationCount);
-    if (target == null) return 1;
-    final previousTarget = donationCount < 1
-        ? 0
-        : donationCount < 6
-        ? 1
-        : 6;
-    return ((donationCount - previousTarget) / (target - previousTarget)).clamp(
-      0,
-      1,
-    );
+    if (donationCount >= 16) return 1;
+    if (donationCount >= 6) {
+      return ((donationCount - 5) / 10).clamp(0, 1);
+    }
+    return (donationCount / 5).clamp(0, 1);
   }
 
   static String progressLabel(int donationCount) {

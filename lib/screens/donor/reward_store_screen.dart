@@ -6,6 +6,7 @@ import '../../data/remote/reward_repository.dart';
 import '../../data/remote/supabase_service.dart';
 import '../../models/reward_item.dart';
 import '../../models/reward_redemption.dart';
+import '../../widgets/reward_visual.dart';
 
 class RewardStoreScreen extends StatefulWidget {
   const RewardStoreScreen({super.key});
@@ -16,7 +17,6 @@ class RewardStoreScreen extends StatefulWidget {
 
 class _RewardStoreScreenState extends State<RewardStoreScreen> {
   late Future<_RewardStoreData> data;
-  String? redeemingId;
 
   RewardRepository? get repository {
     final client = SupabaseService.client;
@@ -44,75 +44,17 @@ class _RewardStoreScreenState extends State<RewardStoreScreen> {
     );
   }
 
-  Future<void> redeem(RewardItem item, int balance) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.donorBackground,
-        title: const Text('Redeem reward?'),
-        content: Text(
-          '${item.name} costs ${item.pointsCost} points. '
-          'Your balance after redemption will be ${balance - item.pointsCost} points.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Redeem'),
-          ),
-        ],
+  Future<void> openDetails(RewardItem item, int balance) async {
+    final redeemed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RewardDetailScreen(item: item, balance: balance),
       ),
     );
-    if (confirmed != true || !mounted) return;
-
-    setState(() => redeemingId = item.id);
-    try {
-      final result = await repository!.redeem(item.id);
-      if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: AppTheme.donorBackground,
-          title: const Text('Reward redeemed'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.redeem, size: 52),
-              const SizedBox(height: 12),
-              Text(item.name, textAlign: TextAlign.center),
-              const SizedBox(height: 12),
-              const Text('Redemption code'),
-              SelectableText(
-                result.code,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              Text('${result.remainingPoints} points remaining'),
-            ],
-          ),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Done'),
-            ),
-          ],
-        ),
-      );
-      if (mounted) {
-        setState(() {
-          data = loadData();
-        });
-      }
-    } on PostgrestException catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
-    } finally {
-      if (mounted) setState(() => redeemingId = null);
+    if (redeemed == true && mounted) {
+      setState(() {
+        data = loadData();
+      });
     }
   }
 
@@ -145,7 +87,9 @@ class _RewardStoreScreenState extends State<RewardStoreScreen> {
           return RefreshIndicator(
             onRefresh: () async {
               final refreshed = loadData();
-              setState(() => data = refreshed);
+              setState(() {
+                data = refreshed;
+              });
               await refreshed;
             },
             child: ListView(
@@ -168,7 +112,6 @@ class _RewardStoreScreenState extends State<RewardStoreScreen> {
                 ),
                 const SizedBox(height: 8),
                 ...value.items.map((item) {
-                  final canAfford = value.balance >= item.pointsCost;
                   final inStock = item.stockQuantity > 0;
                   return Card(
                     child: Padding(
@@ -178,11 +121,7 @@ class _RewardStoreScreenState extends State<RewardStoreScreen> {
                         children: [
                           Row(
                             children: [
-                              Icon(
-                                item.category == 'voucher'
-                                    ? Icons.confirmation_number_outlined
-                                    : Icons.checkroom_outlined,
-                              ),
+                              RewardVisual(item: item, size: 58),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
@@ -206,23 +145,10 @@ class _RewardStoreScreenState extends State<RewardStoreScreen> {
                           const SizedBox(height: 12),
                           SizedBox(
                             width: double.infinity,
-                            child: FilledButton(
-                              onPressed:
-                                  !canAfford || !inStock || redeemingId != null
-                                  ? null
-                                  : () => redeem(item, value.balance),
-                              child: redeemingId == item.id
-                                  ? const SizedBox.square(
-                                      dimension: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : Text(
-                                      canAfford
-                                          ? 'Redeem'
-                                          : 'Not enough points',
-                                    ),
+                            child: OutlinedButton.icon(
+                              onPressed: () => openDetails(item, value.balance),
+                              icon: const Icon(Icons.visibility_outlined),
+                              label: const Text('View details'),
                             ),
                           ),
                         ],
@@ -262,6 +188,215 @@ class _RewardStoreScreenState extends State<RewardStoreScreen> {
       ),
     );
   }
+}
+
+class RewardDetailScreen extends StatefulWidget {
+  const RewardDetailScreen({
+    super.key,
+    required this.item,
+    required this.balance,
+  });
+
+  final RewardItem item;
+  final int balance;
+
+  @override
+  State<RewardDetailScreen> createState() => _RewardDetailScreenState();
+}
+
+class _RewardDetailScreenState extends State<RewardDetailScreen> {
+  bool redeeming = false;
+
+  RewardRepository get repository => RewardRepository(
+    SupabaseService.client ?? (throw StateError('Supabase is not configured.')),
+  );
+
+  Future<void> redeem() async {
+    final item = widget.item;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.donorBackground,
+        title: const Text('Redeem reward?'),
+        content: Text(
+          '${item.name} costs ${item.pointsCost} points. Your balance after '
+          'redemption will be ${widget.balance - item.pointsCost} points.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Redeem'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => redeeming = true);
+    try {
+      final result = await repository.redeem(item.id);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppTheme.donorBackground,
+          title: const Text('Reward redeemed'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.redeem, size: 52),
+              const SizedBox(height: 12),
+              Text(item.name, textAlign: TextAlign.center),
+              const SizedBox(height: 12),
+              const Text('Redemption code'),
+              SelectableText(
+                result.code,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              Text('${result.remainingPoints} points remaining'),
+            ],
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Done'),
+            ),
+          ],
+        ),
+      );
+      if (mounted) Navigator.pop(context, true);
+    } on PostgrestException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
+      setState(() => redeeming = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final item = widget.item;
+    final inStock = item.stockQuantity > 0;
+    final canAfford = widget.balance >= item.pointsCost;
+    return Scaffold(
+      backgroundColor: AppTheme.donorBackground,
+      appBar: AppBar(
+        backgroundColor: AppTheme.donorHeader,
+        foregroundColor: Colors.white,
+        titleTextStyle: AppTheme.donorHeaderTitleStyle,
+        title: const Text('Reward details'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (item.imageUrl case final imageUrl?)
+                  AspectRatio(
+                    aspectRatio: 16 / 10,
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) =>
+                          Center(child: RewardVisual(item: item, size: 150)),
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: RewardVisual(item: item, size: 150)),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(item.description),
+                      const SizedBox(height: 18),
+                      _RewardDetailRow(
+                        icon: Icons.stars_outlined,
+                        label: 'Points needed',
+                        value: '${item.pointsCost} points',
+                      ),
+                      const SizedBox(height: 10),
+                      _RewardDetailRow(
+                        icon: Icons.inventory_2_outlined,
+                        label: 'Availability',
+                        value: inStock
+                            ? '${item.stockQuantity} available'
+                            : 'Out of stock',
+                      ),
+                      const SizedBox(height: 10),
+                      _RewardDetailRow(
+                        icon: Icons.account_balance_wallet_outlined,
+                        label: 'Your balance',
+                        value: '${widget.balance} points',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: !canAfford || !inStock || redeeming ? null : redeem,
+              child: redeeming
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(
+                      !inStock
+                          ? 'Out of stock'
+                          : canAfford
+                          ? 'Redeem for ${item.pointsCost} points'
+                          : 'Not enough points',
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RewardDetailRow extends StatelessWidget {
+  const _RewardDetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Icon(icon, color: Theme.of(context).colorScheme.primary),
+      const SizedBox(width: 10),
+      Expanded(child: Text(label)),
+      Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+    ],
+  );
 }
 
 class _RewardStoreData {

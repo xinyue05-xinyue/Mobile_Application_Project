@@ -4,7 +4,6 @@ import '../data/remote/supabase_service.dart';
 import '../screens/about_us_screen.dart';
 import '../screens/feedback_screen.dart';
 import '../screens/login_screen.dart';
-import '../screens/system_admin/feedback_inbox_screen.dart';
 
 class ProfileActions extends StatelessWidget {
   const ProfileActions({
@@ -24,29 +23,25 @@ class ProfileActions extends StatelessWidget {
   Widget build(BuildContext context) => Card(
     child: Column(
       children: [
-        ListTile(
-          leading: const Icon(Icons.feedback_outlined),
-          title: Text(isSystemAdmin ? 'Feedback inbox' : 'Send feedback'),
-          subtitle: Text(
-            isSystemAdmin
-                ? 'Read and respond to feedback'
-                : 'Report a problem or share a suggestion',
-          ),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => isSystemAdmin
-                  ? const FeedbackInboxScreen()
-                  : FeedbackScreen(
-                      useDonorColors: useDonorColors,
-                      useOrganisationColors: useOrganisationColors,
-                      useHospitalColors: useHospitalColors,
-                    ),
+        if (!isSystemAdmin) ...[
+          ListTile(
+            leading: const Icon(Icons.feedback_outlined),
+            title: const Text('Send feedback'),
+            subtitle: const Text('Report a problem or share a suggestion'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => FeedbackScreen(
+                  useDonorColors: useDonorColors,
+                  useOrganisationColors: useOrganisationColors,
+                  useHospitalColors: useHospitalColors,
+                ),
+              ),
             ),
           ),
-        ),
-        const Divider(height: 1),
+          const Divider(height: 1),
+        ],
         ListTile(
           leading: const Icon(Icons.info_outline),
           title: const Text('About Us'),

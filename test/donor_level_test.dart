@@ -13,7 +13,12 @@ void main() {
     expect(DonorLevel.nextTarget(16), isNull);
   });
   test('progress measures donations between levels', () {
-    expect(DonorLevel.progress(3), 0.4);
+    expect(DonorLevel.progress(0), 0);
+    expect(DonorLevel.progress(1), 0.2);
+    expect(DonorLevel.progress(5), 1);
+    expect(DonorLevel.progress(6), 0.1);
+    expect(DonorLevel.progress(10), 0.5);
+    expect(DonorLevel.progress(15), 1);
     expect(DonorLevel.progress(16), 1);
   });
 }

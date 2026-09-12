@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/reward_item.dart';
@@ -15,6 +17,85 @@ class RewardRepository {
         .eq('is_active', true)
         .order('points_cost');
     return rows.map(RewardItem.fromMap).toList();
+  }
+
+  Future<List<RewardItem>> getAllItems() async {
+    final rows = await client
+        .from('reward_items')
+        .select()
+        .order('created_at', ascending: false);
+    return rows.map(RewardItem.fromMap).toList();
+  }
+
+  Future<void> createItem({
+    required String name,
+    required String description,
+    required String category,
+    required int pointsCost,
+    required int stockQuantity,
+    required String iconKey,
+    String? imageUrl,
+  }) => client.from('reward_items').insert({
+    'name': name,
+    'description': description,
+    'category': category,
+    'points_cost': pointsCost,
+    'stock_quantity': stockQuantity,
+    'icon_key': iconKey,
+    'image_url': imageUrl,
+    'is_active': true,
+  });
+
+  Future<void> updateItem({
+    required String id,
+    required String name,
+    required String description,
+    required String category,
+    required int pointsCost,
+    required int stockQuantity,
+    required String iconKey,
+    required bool isActive,
+    String? imageUrl,
+  }) => client
+      .from('reward_items')
+      .update({
+        'name': name,
+        'description': description,
+        'category': category,
+        'points_cost': pointsCost,
+        'stock_quantity': stockQuantity,
+        'icon_key': iconKey,
+        'image_url': imageUrl,
+        'is_active': isActive,
+      })
+      .eq('id', id);
+
+  Future<void> archiveItem(String id) =>
+      client.from('reward_items').update({'is_active': false}).eq('id', id);
+
+  Future<String> uploadImage({
+    required String fileName,
+    required Uint8List bytes,
+  }) async {
+    final extension = fileName.contains('.')
+        ? fileName.split('.').last.toLowerCase()
+        : 'jpg';
+    final path =
+        '${client.auth.currentUser!.id}/${DateTime.now().microsecondsSinceEpoch}.$extension';
+    await client.storage
+        .from('reward-images')
+        .uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(
+            contentType: extension == 'png'
+                ? 'image/png'
+                : extension == 'webp'
+                ? 'image/webp'
+                : 'image/jpeg',
+          ),
+        );
+    return client.storage.from('reward-images').getPublicUrl(path);
   }
 
   Future<List<RewardRedemption>> getMine() async {

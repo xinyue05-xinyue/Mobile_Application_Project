@@ -116,7 +116,7 @@ class WelcomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Malaysia’s donor companion',
+                  'Your blood donation companion',
                   style: TextStyle(fontSize: 12, color: AppTheme.muted),
                 ),
               ],
