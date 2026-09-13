@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../app/navigation/app_navigator.dart';
 import '../data/remote/auth_repository.dart';
+import '../data/remote/password_recovery_service.dart';
 import '../data/remote/supabase_service.dart';
 import '../models/user_role.dart';
 import '../widgets/my_darah_brand.dart';
@@ -25,12 +27,19 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
     super.initState();
+    passwordRecovery = PasswordRecoveryService.instance.active.value;
+    PasswordRecoveryService.instance.active.addListener(
+      _passwordRecoveryChanged,
+    );
     final client = SupabaseService.client;
-    authSubscription = client?.auth.onAuthStateChange.listen((state) {
-      if (state.event == AuthChangeEvent.passwordRecovery && mounted) {
-        setState(() => passwordRecovery = true);
-      }
-    });
+    authSubscription = client?.auth.onAuthStateChange.listen(
+      (state) {
+        if (state.event == AuthChangeEvent.passwordRecovery) {
+          PasswordRecoveryService.instance.markActive();
+        }
+      },
+      onError: (_, _) {},
+    );
     if (client != null && client.auth.currentSession != null) {
       roleFuture = AuthRepository(client).getCurrentRole();
     }
@@ -38,8 +47,26 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   void dispose() {
+    PasswordRecoveryService.instance.active.removeListener(
+      _passwordRecoveryChanged,
+    );
     authSubscription?.cancel();
     super.dispose();
+  }
+
+  void _passwordRecoveryChanged() {
+    if (!mounted) return;
+    final recoveryActive = PasswordRecoveryService.instance.active.value;
+    setState(() {
+      passwordRecovery = recoveryActive;
+    });
+
+    if (recoveryActive) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        rootNavigatorKey.currentState?.popUntil((route) => route.isFirst);
+      });
+    }
   }
 
   Future<void> retry() async {
@@ -59,10 +86,10 @@ class _AuthGateState extends State<AuthGate> {
   Widget build(BuildContext context) {
     if (passwordRecovery) {
       return ResetPasswordScreen(
-        onComplete: () => setState(() {
-          passwordRecovery = false;
-          roleFuture = null;
-        }),
+        onComplete: () {
+          PasswordRecoveryService.instance.complete();
+          setState(() => roleFuture = null);
+        },
       );
     }
     final future = roleFuture;

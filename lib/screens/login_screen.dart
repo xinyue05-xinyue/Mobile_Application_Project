@@ -73,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> forgotPassword() async {
     final initialEmail = emailController.text.trim();
-    final controller = TextEditingController(text: initialEmail);
+    var enteredEmail = initialEmail;
     final email = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -86,8 +86,9 @@ class _LoginScreenState extends State<LoginScreen> {
               'Enter your account email. We will send you a secure reset link.',
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: controller,
+            TextFormField(
+              initialValue: initialEmail,
+              onChanged: (value) => enteredEmail = value,
               keyboardType: TextInputType.emailAddress,
               autofocus: true,
               decoration: const InputDecoration(
@@ -103,13 +104,12 @@ class _LoginScreenState extends State<LoginScreen> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            onPressed: () => Navigator.pop(context, enteredEmail.trim()),
             child: const Text('Send link'),
           ),
         ],
       ),
     );
-    controller.dispose();
     if (email == null || email.isEmpty || !mounted) return;
     final client = SupabaseService.client;
     if (client == null) return;
@@ -117,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await client.auth.resetPasswordForEmail(
         email,
-        redirectTo: 'io.supabase.mydarah://reset-password',
+        redirectTo: SupabaseService.passwordResetRedirectUrl,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

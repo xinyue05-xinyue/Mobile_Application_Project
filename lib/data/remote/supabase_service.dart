@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseService {
@@ -16,6 +17,15 @@ class SupabaseService {
   static bool _initialized = false;
 
   static bool get isConfigured => url.isNotEmpty && publishableKey.isNotEmpty;
+
+  /// Web recovery must return to the browser app; mobile recovery uses the
+  /// custom scheme registered in AndroidManifest.xml.
+  static String get passwordResetRedirectUrl {
+    if (kIsWeb) {
+      return '${Uri.base.origin}/';
+    }
+    return 'io.supabase.mydarah://reset-password';
+  }
 
   static SupabaseClient? get client {
     if (!_initialized) return null;

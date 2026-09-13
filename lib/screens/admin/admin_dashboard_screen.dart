@@ -6,6 +6,7 @@ import '../../data/remote/supabase_service.dart';
 import '../../models/donation_event.dart';
 import '../../widgets/notification_button.dart';
 import '../../widgets/signed_in_identity_card.dart';
+import '../statistics_screen.dart';
 import 'donor_analysis_screen.dart';
 import 'event_registrations_screen.dart';
 import 'manage_centres_screen.dart';
@@ -62,7 +63,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       titleTextStyle: AppTheme.organisationHeaderTitleStyle,
       automaticallyImplyLeading: false,
       title: const Text('Organisation workspace'),
-      actions: const [NotificationButton(useOrganisationColors: true)],
+      actions: const [
+        StatisticsIconButton(useOrganisationColors: true),
+        NotificationButton(useOrganisationColors: true),
+      ],
     ),
     body: FutureBuilder<AdminDashboardSummary>(
       future: summary,

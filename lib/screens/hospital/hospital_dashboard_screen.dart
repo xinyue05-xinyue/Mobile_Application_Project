@@ -202,7 +202,7 @@ class _HospitalDashboardScreenState extends State<HospitalDashboardScreen> {
                   crossAxisCount: 2,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 1.8,
+                  mainAxisExtent: 120,
                   crossAxisSpacing: 8,
                   mainAxisSpacing: 8,
                   children: [

@@ -69,7 +69,7 @@ class _DonorBenefitsScreenState extends State<DonorBenefitsScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           SizedBox(
-            height: 278,
+            height: 292,
             child: PageView.builder(
               controller: controller,
               itemCount: tiers.length,

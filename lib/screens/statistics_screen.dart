@@ -9,11 +9,13 @@ class StatisticsScreen extends StatefulWidget {
     super.key,
     this.useDonorColors = false,
     this.useHospitalColors = false,
+    this.useOrganisationColors = false,
     this.useSystemAdminColors = false,
   });
 
   final bool useDonorColors;
   final bool useHospitalColors;
+  final bool useOrganisationColors;
   final bool useSystemAdminColors;
 
   @override
@@ -51,6 +53,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           ? AppTheme.donorBackground
           : widget.useHospitalColors
           ? AppTheme.hospitalBackground
+          : widget.useOrganisationColors
+          ? AppTheme.organisationBackground
           : widget.useSystemAdminColors
           ? AppTheme.systemAdminBackground
           : null,
@@ -95,6 +99,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           ? AppTheme.donorBackground
           : widget.useHospitalColors
           ? AppTheme.hospitalBackground
+          : widget.useOrganisationColors
+          ? AppTheme.organisationBackground
           : widget.useSystemAdminColors
           ? AppTheme.systemAdminBackground
           : null,
@@ -103,12 +109,15 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             ? AppTheme.donorHeader
             : widget.useHospitalColors
             ? AppTheme.hospitalHeader
+            : widget.useOrganisationColors
+            ? AppTheme.organisationHeader
             : widget.useSystemAdminColors
             ? AppTheme.systemAdminHeader
             : null,
         foregroundColor:
             widget.useDonorColors ||
                 widget.useHospitalColors ||
+                widget.useOrganisationColors ||
                 widget.useSystemAdminColors
             ? Colors.white
             : null,
@@ -116,6 +125,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             ? AppTheme.donorHeaderTitleStyle
             : widget.useHospitalColors
             ? AppTheme.hospitalHeaderTitleStyle
+            : widget.useOrganisationColors
+            ? AppTheme.organisationHeaderTitleStyle
             : widget.useSystemAdminColors
             ? AppTheme.systemAdminHeaderTitleStyle
             : null,
@@ -170,11 +181,13 @@ class StatisticsIconButton extends StatelessWidget {
     super.key,
     this.useDonorColors = false,
     this.useHospitalColors = false,
+    this.useOrganisationColors = false,
     this.useSystemAdminColors = false,
   });
 
   final bool useDonorColors;
   final bool useHospitalColors;
+  final bool useOrganisationColors;
   final bool useSystemAdminColors;
 
   @override
@@ -188,6 +201,7 @@ class StatisticsIconButton extends StatelessWidget {
           builder: (_) => StatisticsScreen(
             useDonorColors: useDonorColors,
             useHospitalColors: useHospitalColors,
+            useOrganisationColors: useOrganisationColors,
             useSystemAdminColors: useSystemAdminColors,
           ),
         ),
