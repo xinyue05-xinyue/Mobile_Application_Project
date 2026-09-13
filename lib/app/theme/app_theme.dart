@@ -1,20 +1,9 @@
 import 'package:flutter/material.dart';
 
 abstract final class AppTheme {
-  // ---------------------------------------------------------------------------
-  // DEFAULT APP COLOURS
-  // Used by public/login screens and any widget that does not select a role.
-  // ---------------------------------------------------------------------------
   static const Color primary = Color(0xFFC84F62);
   static const Color background = Color(0xFFFFF8F6);
 
-  // ---------------------------------------------------------------------------
-  // DONOR PAGES (Home, Centres, Events, Profile and their nested pages)
-  // donor           = normal red accent
-  // donorBackground = page background
-  // donorHeader     = AppBar/header and strong primary buttons
-  // donorMutedOutline = muted outlined-button and section border
-  // ---------------------------------------------------------------------------
   static const Color donor = Color(0xFFE5394F);
   static const Color donorBackground = Color(0xFFFFF8F9);
   static const Color donorHeader = Color(0xFFC6283E);
@@ -42,12 +31,6 @@ abstract final class AppTheme {
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
   );
 
-  // ---------------------------------------------------------------------------
-  // ORGANISATION PAGES (workspace, events, analysis, venues, QR and profile)
-  // organisation           = primary buttons/icons
-  // organisationBackground = page background
-  // organisationHeader     = AppBar/header
-  // ---------------------------------------------------------------------------
   static const Color organisation = Color(0xFFE86A3C);
   static const Color organisationBackground = Color(0xFFFFF9F5);
   static const Color organisationHeader = Color(0xFFC84A1F);
@@ -57,12 +40,6 @@ abstract final class AppTheme {
     fontWeight: FontWeight.w700,
   );
 
-  // ---------------------------------------------------------------------------
-  // HOSPITAL PAGES (emergency dashboard, requests, QR, profile and feedback)
-  // hospital           = primary buttons/icons
-  // hospitalBackground = page background
-  // hospitalHeader     = AppBar/header
-  // ---------------------------------------------------------------------------
   static const Color hospital = Color(0xFFD6457F);
   static const Color hospitalBackground = Color(0xFFFFF5F9);
   static const Color hospitalHeader = Color(0xFFB72E68);
@@ -72,12 +49,6 @@ abstract final class AppTheme {
     fontWeight: FontWeight.w700,
   );
 
-  // ---------------------------------------------------------------------------
-  // SYSTEM-ADMIN PAGES (dashboard, users, feedback, statistics and profile)
-  // systemAdmin           = primary buttons/icons
-  // systemAdminBackground = page background
-  // systemAdminHeader     = AppBar/header
-  // ---------------------------------------------------------------------------
   static const Color systemAdmin = Color(0xFFA94444);
   static const Color systemAdminBackground = Color(0xFFFCF0F0);
   static const Color systemAdminHeader = Color(0xFF7E2E2E);
@@ -87,15 +58,6 @@ abstract final class AppTheme {
     fontWeight: FontWeight.w700,
   );
 
-  // ---------------------------------------------------------------------------
-  // FIVE-LEVEL ROLE PALETTES
-  // Index 0 = lightest/background
-  // Index 1 = light controls, selected filters and disabled buttons
-  // Index 2 = medium accent
-  // Index 3 = deep/primary buttons
-  // Index 4 = deepest/AppBar header
-  // Example: AppTheme.hospitalPalette[1] is the light hospital pink.
-  // ---------------------------------------------------------------------------
   static const List<Color> donorPalette = [
     donorBackground,
     Color(0xFFFFC1C8),
@@ -127,11 +89,6 @@ abstract final class AppTheme {
   static const Color ink = Color(0xFF2C2325);
   static const Color muted = Color(0xFF716568);
 
-  // ---------------------------------------------------------------------------
-  // BASE THEME
-  // Default text, AppBar, cards, bottom navigation, form fields and buttons.
-  // Role themes below copy this theme and replace its colours.
-  // ---------------------------------------------------------------------------
   static ThemeData get light {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: primary,
@@ -214,8 +171,6 @@ abstract final class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: primary,
           foregroundColor: Colors.white,
-          // Keep the width flexible. Size.fromHeight uses an infinite width,
-          // which breaks buttons placed inside a Row.
           minimumSize: const Size(0, 50),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -234,20 +189,6 @@ abstract final class AppTheme {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // ROLE THEME BUILDER
-  // Called from role_home.dart after login. It selects the correct palette and
-  // automatically styles common widgets throughout that role's workspace:
-  //   scaffoldBackgroundColor = general page background
-  //   appBarTheme             = page headers and header text/icons
-  //   cardTheme               = cards and their outlines
-  //   navigationBarTheme      = bottom navigation and selected tab
-  //   filledButtonTheme       = main action buttons
-  //   outlinedButtonTheme     = outlined action buttons
-  //   floatingActionButtonTheme = floating buttons such as Create/Scan/Add
-  //   chipTheme               = filters such as All/Active/Completed
-  // A screen can still override one of these settings in its own Dart file.
-  // ---------------------------------------------------------------------------
   static ThemeData forRole(Color accent) {
     final base = light;
     final palette = switch (accent) {
@@ -279,8 +220,6 @@ abstract final class AppTheme {
       brightness: Brightness.light,
       surface: const Color(0xFFFFFCFB),
     );
-    // Keep the requested role colour exact. Tonal generation can otherwise
-    // converge similar warm seeds into nearly identical Material primaries.
     final scheme = generatedScheme.copyWith(
       primary: deep,
       primaryContainer: indicator,

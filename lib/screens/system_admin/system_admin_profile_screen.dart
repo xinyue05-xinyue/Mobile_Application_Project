@@ -126,9 +126,13 @@ class _SystemAdminProfileScreenState extends State<SystemAdminProfileScreen> {
                         child: Icon(Icons.admin_panel_settings, size: 42),
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        value.fullName,
-                        style: Theme.of(context).textTheme.headlineSmall,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          value.fullName,
+                          maxLines: 1,
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
                       ),
                       const Text('System administrator'),
                       const SizedBox(height: 6),

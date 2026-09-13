@@ -1,4 +1,3 @@
--- Emergency donations earn 150 points. Standard event donations remain at 100.
 create or replace function public.verify_emergency_donation(
   p_response_id uuid,
   p_next_eligible_date date

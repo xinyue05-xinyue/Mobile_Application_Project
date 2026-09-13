@@ -4,7 +4,6 @@ import '../app/theme/app_theme.dart';
 import '../data/remote/supabase_service.dart';
 import '../models/organisation_profile.dart';
 
-/// Public institutional information only, not the staff personal profile.
 class InstitutionDetailsTile extends StatefulWidget {
   const InstitutionDetailsTile({
     super.key,

@@ -101,7 +101,8 @@ class _RewardStoreScreenState extends State<RewardStoreScreen> {
                     leading: const Icon(Icons.stars, size: 36),
                     title: Text('${value.balance} available points'),
                     subtitle: const Text(
-                      'A verified donation earns 100 points.',
+                      'Earn 100 points for an event donation or 150 points '
+                      'for an emergency donation.',
                     ),
                   ),
                 ),

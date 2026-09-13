@@ -34,7 +34,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Future<void> refresh() async {
     final refreshed = loadSummary();
-    setState(() => summary = refreshed);
+    setState(() {
+      summary = refreshed;
+    });
     await refreshed;
   }
 

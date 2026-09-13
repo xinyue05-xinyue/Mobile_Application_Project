@@ -1,4 +1,3 @@
-/// Parses event-specific QR identifiers; authorisation remains server-side.
 class AttendanceQr {
   static final _pattern = RegExp(
     r'^mydarah:event:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}):donor:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$',

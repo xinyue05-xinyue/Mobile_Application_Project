@@ -1,5 +1,3 @@
--- Event registration and QR attendance are enforced on the server so the
--- client cannot bypass donor eligibility or award duplicate points.
 
 create or replace function public.register_for_event(p_event_id uuid)
 returns uuid

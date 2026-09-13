@@ -55,7 +55,9 @@ class _DonorAnalysisScreenState extends State<DonorAnalysisScreen> {
         if (snapshot.hasError) {
           return Center(
             child: OutlinedButton.icon(
-              onPressed: () => setState(() => analytics = load()),
+              onPressed: () => setState(() {
+                analytics = load();
+              }),
               icon: const Icon(Icons.refresh),
               label: const Text('Try again'),
             ),

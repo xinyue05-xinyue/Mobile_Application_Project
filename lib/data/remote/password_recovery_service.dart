@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 
-/// Keeps password-recovery navigation reliable across cold and warm app starts.
 class PasswordRecoveryService {
   PasswordRecoveryService._();
 
@@ -17,7 +16,6 @@ class PasswordRecoveryService {
     try {
       _handleLink(await _appLinks.getInitialLink());
     } catch (_) {
-      // A missing or malformed initial link must not prevent app startup.
     }
     _linkSubscription ??= _appLinks.uriLinkStream.listen(
       _handleLink,

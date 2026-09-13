@@ -1,5 +1,4 @@
 begin;
--- Keep public event reading, but scope all writes to the owning organiser.
 drop policy if exists events_admin_all on public.donation_events;
 create policy events_admin_all on public.donation_events
 for all to authenticated
@@ -41,7 +40,6 @@ create policy feedback_replies_read on public.feedback_replies for select to aut
 using (public.is_system_admin() or exists (
   select 1 from public.feedback f where f.id = feedback_id and f.user_id = auth.uid()
 ));
--- Preserve the last reply saved by the previous version. Older overwritten replies cannot be recovered.
 insert into public.feedback_replies(feedback_id, message, created_at, legacy)
 select id, admin_response, updated_at, true from public.feedback
 where nullif(trim(admin_response), '') is not null

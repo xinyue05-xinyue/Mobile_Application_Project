@@ -57,7 +57,6 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
       try {
         updatedReplies = await FeedbackRepository(client).getReplies(item.id);
       } catch (_) {
-        // Keep the latest legacy response visible until migration 021 is applied.
       }
       if (mounted) {
         setState(() {
@@ -67,7 +66,6 @@ class _FeedbackDetailScreenState extends State<FeedbackDetailScreen> {
         });
       }
     } catch (_) {
-      // Keep the last visible response if a background refresh fails.
     } finally {
       loading = false;
     }

@@ -11,7 +11,6 @@ class EventReminderService {
   EventReminderService._();
 
   static final EventReminderService instance = EventReminderService._();
-  // MyDarah's email backend is deployed. Other environments can opt out.
   static const emailEnabled = bool.fromEnvironment(
     'ENABLE_EMAIL_REMINDERS',
     defaultValue: true,

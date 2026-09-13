@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -8,7 +6,6 @@ import '../../models/organisation_profile.dart';
 class OrganisationProfileRepository {
   const OrganisationProfileRepository(this.client);
 
-  /// Changes whenever the signed-in institution profile is saved.
   static final ValueNotifier<int> revision = ValueNotifier<int>(0);
 
   final SupabaseClient client;

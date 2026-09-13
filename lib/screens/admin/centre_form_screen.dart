@@ -144,7 +144,7 @@ class _CentreFormScreenState extends State<CentreFormScreen> {
           results = await officialRepository.searchLocations(query);
           if (results.isNotEmpty) break;
         } on Exception {
-          // Try the broader centre-name query next.
+          continue;
         }
       }
       if (!mounted) return;

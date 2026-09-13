@@ -20,8 +20,6 @@ class AdminDashboardRepository {
         .eq('created_by', user.id);
     final now = DateTime.now();
     final events = eventRows.map(DonationEvent.fromMap).toList();
-    // "Open" events include both upcoming and currently running events.
-    // This prevents the dashboard from showing zero as soon as an event starts.
     final upcomingCount = eventRows.where((event) {
       return event['status'] != 'cancelled' &&
           DateTime.parse(event['ends_at']! as String).toLocal().isAfter(now);

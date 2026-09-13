@@ -165,7 +165,11 @@ class _EmergencyResponsesScreenState extends State<EmergencyResponsesScreen> {
               builder: (_) => EmergencyQrScannerScreen(request: widget.request),
             ),
           );
-          if (mounted) setState(() => responses = loadResponses());
+          if (mounted) {
+            setState(() {
+              responses = loadResponses();
+            });
+          }
         },
         icon: const Icon(Icons.qr_code_scanner),
         label: const Text('Scan donor QR'),

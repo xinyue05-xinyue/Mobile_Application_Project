@@ -1,5 +1,3 @@
--- Run once in Supabase SQL Editor after 020_reward_history_links.sql.
--- Adds administrator-managed reward icons/images and catalogue permissions.
 
 begin;
 

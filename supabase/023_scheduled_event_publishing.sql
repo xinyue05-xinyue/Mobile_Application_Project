@@ -12,8 +12,6 @@ set publish_at = least(
 )
 where publish_at is null;
 
--- Older test events may have been created after their manually entered start
--- time. Normalise any existing value before enforcing the constraint.
 update public.donation_events
 set publish_at = starts_at
 where publish_at > starts_at;

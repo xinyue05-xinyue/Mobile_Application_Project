@@ -45,7 +45,7 @@ void main() {
     expect(find.text('Scanner content'), findsOneWidget);
   });
 
-  testWidgets('system admin profile includes inbox and logout confirmation', (
+  testWidgets('system admin profile omits inbox and confirms logout', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -56,14 +56,15 @@ void main() {
         ),
       ),
     );
-    expect(find.text('Feedback inbox'), findsOneWidget);
+    expect(find.text('Feedback inbox'), findsNothing);
     expect(find.text('Send feedback'), findsNothing);
+    expect(find.text('About Us'), findsOneWidget);
     await tester.tap(find.byTooltip('Log out'));
     await tester.pumpAndSettle();
     expect(find.text('Log out?'), findsOneWidget);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(find.text('Log out?'), findsNothing);
-    expect(find.text('Feedback inbox'), findsOneWidget);
+    expect(find.text('Feedback inbox'), findsNothing);
   });
 }

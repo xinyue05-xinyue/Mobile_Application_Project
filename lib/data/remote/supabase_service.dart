@@ -4,8 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class SupabaseService {
   SupabaseService._();
 
-  // These public client credentials let a fresh checkout connect immediately.
-  // A --dart-define value can still override either default when required.
   static const url = String.fromEnvironment(
     'SUPABASE_URL',
     defaultValue: 'https://gsjcocwsvlbuizxpuzqo.supabase.co',
@@ -18,8 +16,6 @@ class SupabaseService {
 
   static bool get isConfigured => url.isNotEmpty && publishableKey.isNotEmpty;
 
-  /// Web recovery must return to the browser app; mobile recovery uses the
-  /// custom scheme registered in AndroidManifest.xml.
   static String get passwordResetRedirectUrl {
     if (kIsWeb) {
       return '${Uri.base.origin}/';

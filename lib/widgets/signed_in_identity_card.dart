@@ -35,7 +35,9 @@ class _SignedInIdentityCardState extends State<SignedInIdentityCard> {
 
   void _profileChanged() {
     if (!mounted || !widget.useInstitutionProfile) return;
-    setState(() => profileName = _loadName());
+    setState(() {
+      profileName = _loadName();
+    });
   }
 
   Future<String?> _loadName() async {

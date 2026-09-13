@@ -1,4 +1,3 @@
--- Apply after 021. Only authenticated donors may schedule their own reminders.
 create table public.event_email_reminders (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -50,7 +49,6 @@ end; $$;
 revoke all on function public.set_event_email_reminder(uuid,timestamptz) from public, anon;
 grant execute on function public.set_event_email_reminder(uuid,timestamptz) to authenticated;
 
--- Called by the private worker only; SKIP LOCKED avoids overlapping cron jobs.
 create or replace function public.claim_event_email_reminders(p_sender text)
 returns setof public.event_email_reminders language plpgsql security definer set search_path = public as $$
 declare item public.event_email_reminders%rowtype; event_row public.donation_events%rowtype; recipient text;
@@ -75,7 +73,6 @@ begin
       update public.event_email_reminders set status = 'failed', last_error = 'No verified login email' where id = item.id;
       continue;
     end if;
-    -- Freeze payload across retries so the provider idempotency key stays valid.
     update public.event_email_reminders set status = 'sending', locked_at = now(), attempts = attempts + 1,
       email_payload = coalesce(email_payload, jsonb_build_object(
         'from', p_sender, 'to', recipient, 'subject', 'MyDarah event reminder',

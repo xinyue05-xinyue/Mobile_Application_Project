@@ -76,7 +76,9 @@ class _DonorHomeScreenState extends State<DonorHomeScreen> {
 
   Future<void> refresh() async {
     final refreshed = loadData();
-    setState(() => data = refreshed);
+    setState(() {
+      data = refreshed;
+    });
     await refreshed;
   }
 

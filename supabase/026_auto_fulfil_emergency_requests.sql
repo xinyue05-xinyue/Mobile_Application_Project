@@ -1,5 +1,3 @@
--- Fulfil emergency requests as soon as their verified donations reach the
--- requested unit count. The trigger runs in the verification transaction.
 create or replace function public.sync_emergency_request_fulfilment()
 returns trigger
 language plpgsql
@@ -31,7 +29,6 @@ after insert or update of status on public.emergency_responses
 for each row
 execute function public.sync_emergency_request_fulfilment();
 
--- Repair requests completed before this trigger existed.
 update public.emergency_requests request
 set status = 'fulfilled', updated_at = now()
 where request.status = 'active'
@@ -42,7 +39,6 @@ where request.status = 'active'
       and response.status = 'completed'
   ) >= request.units_needed;
 
--- Prevent an already fulfilled request from accepting another verification.
 create or replace function public.verify_emergency_donation(
   p_response_id uuid,
   p_next_eligible_date date

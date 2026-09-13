@@ -70,7 +70,11 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
       context,
       MaterialPageRoute(builder: (_) => _EditAboutUsScreen(current: current)),
     );
-    if (saved == true && mounted) setState(() => content = load());
+    if (saved == true && mounted) {
+      setState(() {
+        content = load();
+      });
+    }
   }
 
   @override
@@ -98,7 +102,9 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
                   const Text('Unable to load About Us content.'),
                   const SizedBox(height: 12),
                   FilledButton.icon(
-                    onPressed: () => setState(() => content = load()),
+                    onPressed: () => setState(() {
+                      content = load();
+                    }),
                     icon: const Icon(Icons.refresh),
                     label: const Text('Try again'),
                   ),

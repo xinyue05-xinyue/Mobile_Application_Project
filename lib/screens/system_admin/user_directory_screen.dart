@@ -38,7 +38,9 @@ class _UserDirectoryScreenState extends State<UserDirectoryScreen> {
 
   Future<void> refresh() async {
     final refreshed = loadUsers();
-    setState(() => users = refreshed);
+    setState(() {
+      users = refreshed;
+    });
     await refreshed;
   }
 
