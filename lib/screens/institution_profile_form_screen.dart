@@ -1,8 +1,8 @@
-import 'dart:typed_data';
 import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -12,6 +12,7 @@ import '../data/remote/organisation_profile_repository.dart';
 import '../data/remote/official_centre_repository.dart';
 import '../data/remote/supabase_service.dart';
 import '../models/organisation_profile.dart';
+import '../utils/profile_validation.dart';
 
 class InstitutionProfileFormScreen extends StatefulWidget {
   const InstitutionProfileFormScreen({
@@ -216,6 +217,11 @@ class _InstitutionProfileFormScreenState
             TextFormField(
               controller: phoneController,
               keyboardType: TextInputType.phone,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(11),
+              ],
+              validator: ProfileValidation.phone,
               decoration: const InputDecoration(labelText: 'Contact phone'),
             ),
             const SizedBox(height: 12),
