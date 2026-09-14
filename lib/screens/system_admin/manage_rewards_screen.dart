@@ -89,6 +89,7 @@ class _ManageRewardsScreenState extends State<ManageRewardsScreen> {
     appBar: AppBar(
       backgroundColor: AppTheme.systemAdminHeader,
       foregroundColor: Colors.white,
+      titleTextStyle: AppTheme.systemAdminHeaderTitleStyle,
       title: const Text('Manage redeem rewards'),
     ),
     floatingActionButton: FloatingActionButton.extended(
