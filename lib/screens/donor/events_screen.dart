@@ -13,6 +13,7 @@ import '../../data/remote/profile_repository.dart';
 import '../../data/remote/supabase_service.dart';
 import '../../data/repositories/data_sync_service.dart';
 import '../../models/donation_event.dart';
+import '../../utils/profile_validation.dart';
 import 'attendance_qr_screen.dart';
 
 class EventsScreen extends StatefulWidget {
@@ -47,16 +48,20 @@ class _EventsScreenState extends State<EventsScreen> {
     final client = SupabaseService.client;
     var registrationStatuses = <String, String>{};
     DateTime? nextEligibleDate;
+    DateTime? dateOfBirth;
+    String? phone;
     accountAvailable = false;
     if (client != null) {
       try {
         registrationStatuses = await EventRegistrationRepository(
           client,
         ).getMyRegistrationStatuses().timeout(const Duration(seconds: 10));
-        nextEligibleDate =
-            (await ProfileRepository(client).getCurrentProfile().timeout(
-              const Duration(seconds: 10),
-            )).nextEligibleDate;
+        final profile = await ProfileRepository(
+          client,
+        ).getCurrentProfile().timeout(const Duration(seconds: 10));
+        nextEligibleDate = profile.nextEligibleDate;
+        dateOfBirth = profile.dateOfBirth;
+        phone = profile.phone;
         accountAvailable = true;
       } catch (_) {
         registrationStatuses = {};
@@ -73,7 +78,13 @@ class _EventsScreenState extends State<EventsScreen> {
           registrationStatus == 'registered' &&
           event.endsAt.add(const Duration(days: 1)).isAfter(now);
     }).toList();
-    return _EventData(visibleEvents, registrationStatuses, nextEligibleDate);
+    return _EventData(
+      visibleEvents,
+      registrationStatuses,
+      nextEligibleDate,
+      dateOfBirth,
+      phone,
+    );
   }
 
   String dateLabel(DateTime value) {
@@ -102,6 +113,28 @@ class _EventsScreenState extends State<EventsScreen> {
     return event.eligibleOnEventDate(nextEligibleDate);
   }
 
+  String? registrationEligibilityMessage(
+    DonationEvent event,
+    DateTime? nextEligibleDate,
+    DateTime? dateOfBirth,
+    String? phone,
+  ) {
+    if (dateOfBirth == null) {
+      return 'Add your date of birth in Profile before registering.';
+    }
+    if (!ProfileValidation.isAtLeast18(dateOfBirth)) {
+      return 'You must be at least 18 years old to register.';
+    }
+    if (ProfileValidation.phone(phone) != null) {
+      return 'Add a valid Malaysian phone number in Profile before registering.';
+    }
+    if (!isEligibleForEvent(event, nextEligibleDate) &&
+        nextEligibleDate != null) {
+      return 'You can donate again from ${shortDate(nextEligibleDate)}.';
+    }
+    return null;
+  }
+
   String shortDate(DateTime value) {
     final day = value.day.toString().padLeft(2, '0');
     final month = value.month.toString().padLeft(2, '0');
@@ -112,13 +145,20 @@ class _EventsScreenState extends State<EventsScreen> {
     DonationEvent event, {
     required String? registrationStatus,
     required DateTime? nextEligibleDate,
+    required DateTime? dateOfBirth,
+    required String? phone,
   }) async {
     final existingReminder = await EventReminderService.instance.reminderFor(
       event.id,
     );
     if (!mounted) return;
-    final eligible =
-        accountAvailable && isEligibleForEvent(event, nextEligibleDate);
+    final eligibilityMessage = registrationEligibilityMessage(
+      event,
+      nextEligibleDate,
+      dateOfBirth,
+      phone,
+    );
+    final eligible = accountAvailable && eligibilityMessage == null;
     final ended = !event.registrationOpenAt(DateTime.now());
     final qrEventId = await Navigator.push<String>(
       context,
@@ -291,6 +331,17 @@ class _EventsScreenState extends State<EventsScreen> {
                       ),
                     ),
                   ),
+                  if (registrationStatus == null &&
+                      accountAvailable &&
+                      eligibilityMessage != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      eligibilityMessage,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ],
                   if (registrationStatus == 'registered') ...[
                     const SizedBox(height: 10),
                     if (event.startsAt.isAfter(DateTime.now())) ...[
@@ -601,10 +652,17 @@ class _EventsScreenState extends State<EventsScreen> {
     DonationEvent event, {
     required String? registrationStatus,
     required DateTime? nextEligibleDate,
+    required DateTime? dateOfBirth,
+    required String? phone,
   }) {
     final registered = registrationStatus != null;
-    final eligible =
-        accountAvailable && isEligibleForEvent(event, nextEligibleDate);
+    final eligibilityMessage = registrationEligibilityMessage(
+      event,
+      nextEligibleDate,
+      dateOfBirth,
+      phone,
+    );
+    final eligible = accountAvailable && eligibilityMessage == null;
     final ended = !event.registrationOpenAt(DateTime.now());
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -695,7 +753,9 @@ class _EventsScreenState extends State<EventsScreen> {
               const SizedBox(height: 8),
               Text(description),
             ],
-            if (!registered && !eligible && nextEligibleDate != null) ...[
+            if (!registered &&
+                accountAvailable &&
+                eligibilityMessage != null) ...[
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -707,7 +767,7 @@ class _EventsScreenState extends State<EventsScreen> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Not eligible for this event. You can donate again from ${shortDate(nextEligibleDate)}.',
+                      eligibilityMessage,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.error,
                       ),
@@ -723,6 +783,8 @@ class _EventsScreenState extends State<EventsScreen> {
                   onPressed: () => showEventDetails(
                     event,
                     nextEligibleDate: nextEligibleDate,
+                    dateOfBirth: dateOfBirth,
+                    phone: phone,
                     registrationStatus: registrationStatus,
                   ),
                   child: const Text('View details'),
@@ -787,7 +849,8 @@ class _EventsScreenState extends State<EventsScreen> {
               child: Text('Unable to load events: ${snapshot.error}'),
             );
           }
-          final value = snapshot.data ?? const _EventData([], {}, null);
+          final value =
+              snapshot.data ?? const _EventData([], {}, null, null, null);
           final matching = value.events.where(matchesSearch).toList();
           final registered = matching
               .where(
@@ -858,6 +921,8 @@ class _EventsScreenState extends State<EventsScreen> {
                                 registrationStatus:
                                     value.registrationStatuses[event.id],
                                 nextEligibleDate: value.nextEligibleDate,
+                                dateOfBirth: value.dateOfBirth,
+                                phone: value.phone,
                               ),
                               const SizedBox(height: 8),
                             ],
@@ -902,6 +967,8 @@ class _EventsScreenState extends State<EventsScreen> {
                       event,
                       registrationStatus: null,
                       nextEligibleDate: value.nextEligibleDate,
+                      dateOfBirth: value.dateOfBirth,
+                      phone: value.phone,
                     ),
                     const SizedBox(height: 12),
                   ],
@@ -919,11 +986,15 @@ class _EventData {
     this.events,
     this.registrationStatuses,
     this.nextEligibleDate,
+    this.dateOfBirth,
+    this.phone,
   );
 
   final List<DonationEvent> events;
   final Map<String, String> registrationStatuses;
   final DateTime? nextEligibleDate;
+  final DateTime? dateOfBirth;
+  final String? phone;
 }
 
 enum _ReminderChoice { oneDayBefore, twoHoursBefore, custom, cancel }

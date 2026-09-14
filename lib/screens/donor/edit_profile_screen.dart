@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/theme/app_theme.dart';
 import '../../data/remote/profile_repository.dart';
 import '../../data/remote/supabase_service.dart';
 import '../../models/donor_profile.dart';
+import '../../utils/profile_validation.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key, required this.profile});
@@ -106,9 +108,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             TextFormField(
               controller: nameController,
               textCapitalization: TextCapitalization.words,
-              validator: (value) => value == null || value.trim().isEmpty
-                  ? 'Full name is required.'
-                  : null,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z ]')),
+              ],
+              validator: ProfileValidation.fullName,
               decoration: const InputDecoration(labelText: 'Full name'),
             ),
             const SizedBox(height: 16),
@@ -126,6 +129,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             TextFormField(
               controller: phoneController,
               keyboardType: TextInputType.phone,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(11),
+              ],
+              validator: (value) =>
+                  ProfileValidation.phone(value, required: false),
               decoration: const InputDecoration(labelText: 'Phone number'),
             ),
             const SizedBox(height: 16),

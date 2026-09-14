@@ -11,11 +11,17 @@ class AuthRepository {
     required String fullName,
     required String email,
     required String password,
+    required String phone,
+    required DateTime dateOfBirth,
   }) async {
     final response = await client.auth.signUp(
       email: email,
       password: password,
-      data: {'full_name': fullName},
+      data: {
+        'full_name': fullName,
+        'phone': phone,
+        'date_of_birth': dateOfBirth.toIso8601String().split('T').first,
+      },
     );
     if (response.user == null) {
       throw const AuthException('Unable to create the account.');

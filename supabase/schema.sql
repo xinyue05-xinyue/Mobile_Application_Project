@@ -6,10 +6,10 @@ create type public.verification_status as enum ('pending', 'verified', 'rejected
 
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
-  full_name text not null,
+  full_name text not null check (full_name ~ '^[A-Za-z]+( [A-Za-z]+)*$'),
   role public.user_role not null default 'donor',
   blood_type text check (blood_type in ('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-')),
-  phone text,
+  phone text check (phone is null or phone ~ '^0[0-9]{9,10}$'),
   date_of_birth date,
   next_eligible_date date,
   notifications_enabled boolean not null default true,
@@ -99,8 +99,13 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, full_name)
-  values (new.id, coalesce(new.raw_user_meta_data ->> 'full_name', 'New donor'));
+  insert into public.profiles (id, full_name, phone, date_of_birth)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data ->> 'full_name', 'New donor'),
+    nullif(new.raw_user_meta_data ->> 'phone', ''),
+    nullif(new.raw_user_meta_data ->> 'date_of_birth', '')::date
+  );
   return new;
 end;
 $$;
