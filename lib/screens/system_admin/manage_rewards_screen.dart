@@ -388,6 +388,7 @@ class _RewardFormScreenState extends State<RewardFormScreen> {
     appBar: AppBar(
       backgroundColor: AppTheme.systemAdminHeader,
       foregroundColor: Colors.white,
+      titleTextStyle: AppTheme.systemAdminHeaderTitleStyle,
       title: Text(widget.item == null ? 'Create reward' : 'Edit reward'),
     ),
     body: Form(
