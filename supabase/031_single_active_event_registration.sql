@@ -84,7 +84,16 @@ begin
 
   insert into public.event_registrations (event_id, donor_id)
   values (p_event_id, auth.uid())
+  on conflict (event_id, donor_id) do update
+  set status = 'registered',
+      registered_at = now(),
+      attended_at = null
+  where public.event_registrations.status = 'cancelled'
   returning id into registration_id;
+
+  if registration_id is null then
+    raise exception 'You have already registered for this event';
+  end if;
 
   return registration_id;
 exception
@@ -98,6 +107,43 @@ grant execute on function public.register_for_event(uuid) to authenticated;
 
 revoke insert on public.event_registrations from authenticated;
 drop policy if exists event_registrations_insert on public.event_registrations;
+
+create or replace function public.cancel_my_event_registration(p_event_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Please log in again';
+  end if;
+
+  update public.event_registrations registration
+  set status = 'cancelled'
+  from public.donation_events event
+  where registration.event_id = p_event_id
+    and registration.donor_id = auth.uid()
+    and registration.status = 'registered'
+    and event.id = registration.event_id
+    and event.status not in ('ended', 'cancelled')
+    and event.ends_at > now();
+
+  if not found then
+    raise exception 'Active registration not found';
+  end if;
+
+  update public.event_email_reminders
+  set status = 'cancelled'
+  where user_id = auth.uid()
+    and event_id = p_event_id
+    and status in ('pending', 'sending');
+end;
+$$;
+
+revoke all on function public.cancel_my_event_registration(uuid) from public;
+grant execute on function public.cancel_my_event_registration(uuid)
+to authenticated;
 
 create or replace function public.respond_to_emergency(p_request_id uuid)
 returns uuid

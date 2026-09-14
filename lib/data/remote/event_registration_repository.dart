@@ -33,6 +33,15 @@ class EventRegistrationRepository {
     await client.rpc('register_for_event', params: {'p_event_id': eventId});
   }
 
+  Future<void> cancel(String eventId) async {
+    final user = client.auth.currentUser;
+    if (user == null) throw const AuthException('Please log in again.');
+    await client.rpc(
+      'cancel_my_event_registration',
+      params: {'p_event_id': eventId},
+    );
+  }
+
   Future<bool> hasActiveDonationCommitment() async {
     final value = await client.rpc('has_active_donation_commitment');
     return value == true;

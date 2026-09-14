@@ -28,6 +28,7 @@ class _EventsScreenState extends State<EventsScreen> {
   final searchController = TextEditingController();
   late Future<_EventData> data;
   String? registeringEventId;
+  String? cancellingEventId;
   bool registeredExpanded = false;
   bool accountAvailable = false;
 
@@ -189,6 +190,8 @@ class _EventsScreenState extends State<EventsScreen> {
       hasActiveCommitment,
     );
     final eligible = accountAvailable && eligibilityMessage == null;
+    final hasRegistration =
+        registrationStatus == 'registered' || registrationStatus == 'attended';
     final ended = !event.registrationOpenAt(DateTime.now());
     final qrEventId = await Navigator.push<String>(
       context,
@@ -332,8 +335,9 @@ class _EventsScreenState extends State<EventsScreen> {
                     child: FilledButton.icon(
                       style: AppTheme.donorPrimaryButtonStyle,
                       onPressed:
-                          registrationStatus != null ||
+                          hasRegistration ||
                               registeringEventId != null ||
+                              cancellingEventId != null ||
                               !eligible ||
                               ended
                           ? null
@@ -342,9 +346,7 @@ class _EventsScreenState extends State<EventsScreen> {
                               confirmRegistration(event);
                             },
                       icon: Icon(
-                        registrationStatus != null
-                            ? Icons.check
-                            : Icons.event_available,
+                        hasRegistration ? Icons.check : Icons.event_available,
                       ),
                       label: Text(
                         registrationStatus == 'attended'
@@ -404,6 +406,20 @@ class _EventsScreenState extends State<EventsScreen> {
                               ? 'QR available when event starts'
                               : 'Show attendance QR',
                         ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: cancellingEventId == null
+                            ? () {
+                                Navigator.pop(sheetContext);
+                                confirmCancellation(event);
+                              }
+                            : null,
+                        icon: const Icon(Icons.event_busy_outlined),
+                        label: const Text('Cancel registration'),
                       ),
                     ),
                   ],
@@ -506,6 +522,56 @@ class _EventsScreenState extends State<EventsScreen> {
       ).showSnackBar(SnackBar(content: Text(error.message)));
     } finally {
       if (mounted) setState(() => registeringEventId = null);
+    }
+  }
+
+  Future<void> confirmCancellation(DonationEvent event) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppTheme.donorBackground,
+        title: const Text('Cancel registration?'),
+        content: Text(
+          'Cancel your registration for ${event.title}? You can register for another available event afterward.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Keep registration'),
+          ),
+          FilledButton(
+            style: AppTheme.donorPrimaryButtonStyle,
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Cancel registration'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await cancelRegistration(event);
+  }
+
+  Future<void> cancelRegistration(DonationEvent event) async {
+    final client = SupabaseService.client;
+    if (client == null) return;
+    setState(() => cancellingEventId = event.id);
+    try {
+      await EventRegistrationRepository(client).cancel(event.id);
+      try {
+        await EventReminderService.instance.cancel(event.id);
+      } catch (_) {}
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Event registration cancelled.')),
+      );
+      setState(() => data = loadData());
+    } on PostgrestException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
+    } finally {
+      if (mounted) setState(() => cancellingEventId = null);
     }
   }
 
@@ -687,7 +753,8 @@ class _EventsScreenState extends State<EventsScreen> {
     required String? activeRegistrationEventId,
     required bool hasActiveCommitment,
   }) {
-    final registered = registrationStatus != null;
+    final registered =
+        registrationStatus == 'registered' || registrationStatus == 'attended';
     final eligibilityMessage = registrationEligibilityMessage(
       event,
       nextEligibleDate,
@@ -891,12 +958,16 @@ class _EventsScreenState extends State<EventsScreen> {
           final matching = value.events.where(matchesSearch).toList();
           final registered = matching
               .where(
-                (event) => value.registrationStatuses.containsKey(event.id),
+                (event) =>
+                    value.registrationStatuses[event.id] == 'registered' ||
+                    value.registrationStatuses[event.id] == 'attended',
               )
               .toList();
           final available = matching
               .where(
-                (event) => !value.registrationStatuses.containsKey(event.id),
+                (event) =>
+                    !value.registrationStatuses.containsKey(event.id) ||
+                    value.registrationStatuses[event.id] == 'cancelled',
               )
               .toList();
           return RefreshIndicator(
