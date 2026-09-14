@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/user_feedback.dart';
+import '../local/local_cache_service.dart';
 
 class FeedbackRepository {
   const FeedbackRepository(this.client);
@@ -72,11 +73,27 @@ class FeedbackRepository {
   }
 
   Future<List<UserFeedback>> getAll() async {
-    final rows = await client
-        .from('feedback')
-        .select(selection)
-        .order('created_at', ascending: false);
-    return rows.map(UserFeedback.fromMap).toList();
+    final user = client.auth.currentUser;
+    if (user == null) return const [];
+    try {
+      final rows = await client
+          .from('feedback')
+          .select(selection)
+          .order('created_at', ascending: false);
+      await LocalCacheService.instance.saveList(
+        user.id,
+        'feedback_inbox',
+        rows.cast<Map<String, Object?>>(),
+      );
+      return rows.map(UserFeedback.fromMap).toList();
+    } on Exception {
+      final cached = await LocalCacheService.instance.loadList(
+        user.id,
+        'feedback_inbox',
+      );
+      if (cached == null) rethrow;
+      return cached.map(UserFeedback.fromMap).toList();
+    }
   }
 
   Future<void> review({

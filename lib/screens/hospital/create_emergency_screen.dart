@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../app/theme/app_theme.dart';
 import '../../data/remote/emergency_repository.dart';
 import '../../data/remote/supabase_service.dart';
+import '../../data/local/local_cache_service.dart';
 
 class CreateEmergencyScreen extends StatefulWidget {
   const CreateEmergencyScreen({super.key});
@@ -19,6 +20,47 @@ class _CreateEmergencyScreenState extends State<CreateEmergencyScreen> {
   String urgency = 'urgent';
   DateTime? deadline;
   bool isSaving = false;
+  bool savedSuccessfully = false;
+
+  @override
+  void initState() {
+    super.initState();
+    restoreDraft();
+  }
+
+  Future<void> restoreDraft() async {
+    final userId = SupabaseService.client?.auth.currentUser?.id;
+    if (userId == null) return;
+    final draft = await LocalCacheService.instance.loadMap(
+      userId,
+      'emergency_request_draft',
+    );
+    if (!mounted || draft == null) return;
+    setState(() {
+      bloodType = draft['blood_type'] as String? ?? bloodType;
+      urgency = draft['urgency'] as String? ?? urgency;
+      deadline = DateTime.tryParse(
+        draft['deadline'] as String? ?? '',
+      )?.toLocal();
+    });
+  }
+
+  Future<void> saveDraft() async {
+    final userId = SupabaseService.client?.auth.currentUser?.id;
+    if (userId == null) return;
+    await LocalCacheService.instance
+        .saveMap(userId, 'emergency_request_draft', {
+          'blood_type': bloodType,
+          'urgency': urgency,
+          'deadline': deadline?.toUtc().toIso8601String(),
+        });
+  }
+
+  @override
+  void dispose() {
+    if (!savedSuccessfully) saveDraft();
+    super.dispose();
+  }
 
   String deadlineLabel() {
     final value = deadline;
@@ -70,6 +112,11 @@ class _CreateEmergencyScreenState extends State<CreateEmergencyScreen> {
       await EmergencyRepository(
         client,
       ).create(bloodType: bloodType, urgency: urgency, deadline: deadline!);
+      await LocalCacheService.instance.remove(
+        client.auth.currentUser!.id,
+        'emergency_request_draft',
+      );
+      savedSuccessfully = true;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Emergency request created.')),

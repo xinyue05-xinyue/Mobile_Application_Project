@@ -4,6 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/reward_item.dart';
 import '../../models/reward_redemption.dart';
+import '../local/local_cache_service.dart';
+
+// REWARD REPOSITORY: Reads cached catalogues but performs redemptions in Supabase.
 
 class RewardRepository {
   const RewardRepository(this.client);
@@ -11,12 +14,30 @@ class RewardRepository {
   final SupabaseClient client;
 
   Future<List<RewardItem>> getItems() async {
-    final rows = await client
-        .from('reward_items')
-        .select()
-        .eq('is_active', true)
-        .order('points_cost');
-    return rows.map(RewardItem.fromMap).toList();
+    final user = client.auth.currentUser;
+    try {
+      final rows = await client
+          .from('reward_items')
+          .select()
+          .eq('is_active', true)
+          .order('points_cost');
+      if (user != null) {
+        await LocalCacheService.instance.saveList(
+          user.id,
+          'reward_catalogue',
+          rows.cast<Map<String, Object?>>(),
+        );
+      }
+      return rows.map(RewardItem.fromMap).toList();
+    } on Exception {
+      if (user == null) rethrow;
+      final cached = await LocalCacheService.instance.loadList(
+        user.id,
+        'reward_catalogue',
+      );
+      if (cached == null) rethrow;
+      return cached.map(RewardItem.fromMap).toList();
+    }
   }
 
   Future<List<RewardItem>> getAllItems() async {

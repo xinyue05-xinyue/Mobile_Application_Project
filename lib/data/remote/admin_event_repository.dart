@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:typed_data';
 
 import '../../models/donation_event.dart';
+import '../local/local_cache_service.dart';
 
 class AdminEventRepository {
   const AdminEventRepository(this.client);
@@ -11,12 +12,26 @@ class AdminEventRepository {
   Future<List<DonationEvent>> getOwnEvents() async {
     final user = client.auth.currentUser;
     if (user == null) throw const AuthException('Please log in again.');
-    final rows = await client
-        .from('donation_events')
-        .select()
-        .eq('created_by', user.id)
-        .order('starts_at', ascending: false);
-    return rows.map(DonationEvent.fromMap).toList();
+    try {
+      final rows = await client
+          .from('donation_events')
+          .select()
+          .eq('created_by', user.id)
+          .order('starts_at', ascending: false);
+      await LocalCacheService.instance.saveList(
+        user.id,
+        'organisation_events',
+        rows.cast<Map<String, Object?>>(),
+      );
+      return rows.map(DonationEvent.fromMap).toList();
+    } on Exception {
+      final cached = await LocalCacheService.instance.loadList(
+        user.id,
+        'organisation_events',
+      );
+      if (cached == null) rethrow;
+      return cached.map(DonationEvent.fromMap).toList();
+    }
   }
 
   Future<void> create({

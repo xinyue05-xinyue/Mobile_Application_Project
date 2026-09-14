@@ -1,5 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+// APP PREFERENCES: Stores small device settings such as notification preference.
+
 class PreferencesService {
   PreferencesService._();
 

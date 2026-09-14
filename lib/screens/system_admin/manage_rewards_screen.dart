@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_theme.dart';
 import '../../data/remote/reward_repository.dart';
 import '../../data/remote/supabase_service.dart';
+import '../../data/local/local_cache_service.dart';
 import '../../models/reward_item.dart';
 import '../../widgets/reward_visual.dart';
 
@@ -271,6 +272,7 @@ class _RewardFormScreenState extends State<RewardFormScreen> {
   Uint8List? selectedImage;
   String? selectedFileName;
   bool saving = false;
+  bool savedSuccessfully = false;
 
   RewardRepository get repository => RewardRepository(
     SupabaseService.client ?? (throw StateError('Supabase is not configured.')),
@@ -291,10 +293,46 @@ class _RewardFormScreenState extends State<RewardFormScreen> {
         : 'gift';
     isActive = item?.isActive ?? true;
     imageUrl = item?.imageUrl;
+    restoreDraft();
+  }
+
+  String get draftName => 'reward_draft_${widget.item?.id ?? 'new'}';
+
+  Future<void> restoreDraft() async {
+    final userId = SupabaseService.client?.auth.currentUser?.id;
+    if (userId == null) return;
+    final draft = await LocalCacheService.instance.loadMap(userId, draftName);
+    if (!mounted || draft == null) return;
+    setState(() {
+      name.text = draft['name'] as String? ?? name.text;
+      description.text = draft['description'] as String? ?? description.text;
+      points.text = draft['points'] as String? ?? points.text;
+      stock.text = draft['stock'] as String? ?? stock.text;
+      category = draft['category'] as String? ?? category;
+      iconKey = draft['icon_key'] as String? ?? iconKey;
+      isActive = draft['is_active'] as bool? ?? isActive;
+      imageUrl = draft['image_url'] as String? ?? imageUrl;
+    });
+  }
+
+  Future<void> saveDraft() async {
+    final userId = SupabaseService.client?.auth.currentUser?.id;
+    if (userId == null) return;
+    await LocalCacheService.instance.saveMap(userId, draftName, {
+      'name': name.text,
+      'description': description.text,
+      'points': points.text,
+      'stock': stock.text,
+      'category': category,
+      'icon_key': iconKey,
+      'is_active': isActive,
+      'image_url': imageUrl,
+    });
   }
 
   @override
   void dispose() {
+    if (!savedSuccessfully) saveDraft();
     name.dispose();
     description.dispose();
     points.dispose();
@@ -372,6 +410,11 @@ class _RewardFormScreenState extends State<RewardFormScreen> {
           isActive: isActive,
         );
       }
+      await LocalCacheService.instance.remove(
+        SupabaseService.client!.auth.currentUser!.id,
+        draftName,
+      );
+      savedSuccessfully = true;
       if (mounted) Navigator.pop(context, true);
     } catch (error) {
       if (!mounted) return;

@@ -10,6 +10,7 @@ import '../../data/remote/admin_centre_repository.dart';
 import '../../data/remote/admin_event_repository.dart';
 import '../../data/remote/official_centre_repository.dart';
 import '../../data/remote/supabase_service.dart';
+import '../../data/local/local_cache_service.dart';
 import '../../models/donation_centre.dart';
 import '../../models/donation_event.dart';
 import '../../widgets/location_suggestions.dart';
@@ -42,6 +43,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
   List<DonationCentre> officialCentres = const [];
   List<DonationCentre> organisationVenues = const [];
   List<LocationSearchResult> locationSuggestions = const [];
+  bool savedSuccessfully = false;
 
   @override
   void initState() {
@@ -58,6 +60,51 @@ class _EventFormScreenState extends State<EventFormScreen> {
       location = LatLng(event!.latitude!, event.longitude!);
     }
     loadVenueSuggestions();
+    restoreDraft();
+  }
+
+  String get draftName => 'event_draft_${widget.event?.id ?? 'new'}';
+
+  Future<void> restoreDraft() async {
+    final userId = SupabaseService.client?.auth.currentUser?.id;
+    if (userId == null) return;
+    final draft = await LocalCacheService.instance.loadMap(userId, draftName);
+    if (!mounted || draft == null) return;
+    final latitude = draft['latitude'] as num?;
+    final longitude = draft['longitude'] as num?;
+    setState(() {
+      titleController.text = draft['title'] as String? ?? titleController.text;
+      venueController.text = draft['venue'] as String? ?? venueController.text;
+      descriptionController.text =
+          draft['description'] as String? ?? descriptionController.text;
+      startsAt =
+          DateTime.tryParse(draft['starts_at'] as String? ?? '')?.toLocal() ??
+          startsAt;
+      endsAt =
+          DateTime.tryParse(draft['ends_at'] as String? ?? '')?.toLocal() ??
+          endsAt;
+      publishAt =
+          DateTime.tryParse(draft['publish_at'] as String? ?? '')?.toLocal() ??
+          publishAt;
+      if (latitude != null && longitude != null) {
+        location = LatLng(latitude.toDouble(), longitude.toDouble());
+      }
+    });
+  }
+
+  Future<void> saveDraft() async {
+    final userId = SupabaseService.client?.auth.currentUser?.id;
+    if (userId == null) return;
+    await LocalCacheService.instance.saveMap(userId, draftName, {
+      'title': titleController.text,
+      'venue': venueController.text,
+      'description': descriptionController.text,
+      'starts_at': startsAt.toUtc().toIso8601String(),
+      'ends_at': endsAt.toUtc().toIso8601String(),
+      'publish_at': publishAt.toUtc().toIso8601String(),
+      'latitude': location?.latitude,
+      'longitude': location?.longitude,
+    });
   }
 
   Future<void> loadVenueSuggestions() async {
@@ -108,6 +155,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
 
   @override
   void dispose() {
+    if (!savedSuccessfully) saveDraft();
     titleController.dispose();
     venueController.dispose();
     descriptionController.dispose();
@@ -266,6 +314,11 @@ class _EventFormScreenState extends State<EventFormScreen> {
           publishAt: publishAt,
         );
       }
+      await LocalCacheService.instance.remove(
+        client.auth.currentUser!.id,
+        draftName,
+      );
+      savedSuccessfully = true;
       if (!mounted) return;
       Navigator.pop(context, true);
     } on PostgrestException catch (error) {

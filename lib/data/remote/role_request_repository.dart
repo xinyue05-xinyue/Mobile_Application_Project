@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/role_request.dart';
 import '../../models/user_role.dart';
+import '../local/local_cache_service.dart';
 
 class RoleRequestRepository {
   const RoleRequestRepository(this.client);
@@ -125,11 +126,27 @@ class RoleRequestRepository {
   }
 
   Future<List<RoleRequest>> getAll() async {
-    final rows = await client
-        .from('role_requests')
-        .select()
-        .order('created_at', ascending: false);
-    return rows.map(RoleRequest.fromMap).toList();
+    final user = client.auth.currentUser;
+    if (user == null) return const [];
+    try {
+      final rows = await client
+          .from('role_requests')
+          .select()
+          .order('created_at', ascending: false);
+      await LocalCacheService.instance.saveList(
+        user.id,
+        'staff_applications',
+        rows.cast<Map<String, Object?>>(),
+      );
+      return rows.map(RoleRequest.fromMap).toList();
+    } on Exception {
+      final cached = await LocalCacheService.instance.loadList(
+        user.id,
+        'staff_applications',
+      );
+      if (cached == null) rethrow;
+      return cached.map(RoleRequest.fromMap).toList();
+    }
   }
 
   Future<void> review({

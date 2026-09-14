@@ -1,19 +1,23 @@
 import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart';
 
+// LOCAL DATABASE: Creates and upgrades the SQLite cache used on mobile devices.
+
 class AppDatabase {
   AppDatabase._();
 
+  // Singleton connection prevents the app from opening the database repeatedly.
   static final AppDatabase instance = AppDatabase._();
   Database? _database;
 
+  // Opens my_darah.db on first use and reuses it afterward.
   Future<Database> get database async {
     if (_database case final database?) return database;
 
     final databasePath = await getDatabasesPath();
     _database = await openDatabase(
       path.join(databasePath, 'my_darah.db'),
-      version: 8,
+      version: 9,
       onConfigure: (database) async {
         await database.execute('PRAGMA foreign_keys = ON');
       },
@@ -23,6 +27,7 @@ class AppDatabase {
     return _database!;
   }
 
+  // Creates every table required by a new installation.
   Future<void> _createSchema(Database database, int version) async {
     await database.execute('''
       CREATE TABLE donation_centres (
@@ -94,8 +99,10 @@ class AppDatabase {
 
     await _createGovernmentStats(database);
     await _createOfficialCentres(database);
+    await _createModuleCaches(database);
   }
 
+  // Migrates existing installations while preserving their cached data.
   Future<void> _upgradeSchema(
     Database database,
     int oldVersion,
@@ -155,8 +162,10 @@ class AppDatabase {
         'ALTER TABLE donation_events ADD COLUMN image_path TEXT',
       );
     }
+    if (oldVersion < 9) await _createModuleCaches(database);
   }
 
+  // Cached public statistics downloaded from the government data source.
   Future<void> _createGovernmentStats(Database database) async {
     await database.execute('''
       CREATE TABLE IF NOT EXISTS government_donation_stats (
@@ -170,6 +179,7 @@ class AppDatabase {
     ''');
   }
 
+  // Cached official blood collection centres used by maps and search.
   Future<void> _createOfficialCentres(Database database) async {
     await database.execute('''
       CREATE TABLE IF NOT EXISTS official_donation_centres (
@@ -184,5 +194,33 @@ class AppDatabase {
         synced_at TEXT NOT NULL
       )
     ''');
+  }
+
+  // Every business module owns one SQLite table for cached lists and drafts.
+  // The JSON payload keeps the storage reusable while Supabase remains the
+  // authoritative database for shared and security-sensitive records.
+  Future<void> _createModuleCaches(Database database) async {
+    const tables = [
+      'user_access_local',
+      'donation_event_local',
+      'emergency_request_local',
+      'attendance_verification_local',
+      'reward_recognition_local',
+      'feedback_communication_local',
+      'system_administration_local',
+    ];
+
+    for (final table in tables) {
+      await database.execute('''
+        CREATE TABLE IF NOT EXISTS $table (
+          user_id TEXT NOT NULL,
+          cache_key TEXT NOT NULL,
+          value_type TEXT NOT NULL CHECK (value_type IN ('map', 'list')),
+          payload TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          PRIMARY KEY (user_id, cache_key)
+        )
+      ''');
+    }
   }
 }

@@ -7,6 +7,8 @@ import 'package:timezone/timezone.dart' as timezone;
 import '../../models/donation_event.dart';
 import '../remote/supabase_service.dart';
 
+// EVENT REMINDERS: Schedules, reads, and cancels email and phone reminders.
+
 class EventReminderService {
   EventReminderService._();
 

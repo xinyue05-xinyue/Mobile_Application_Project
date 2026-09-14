@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/event_registration.dart';
+import '../local/local_cache_service.dart';
 
 class EventRegistrationRepository {
   const EventRegistrationRepository(this.client);
@@ -49,16 +50,33 @@ class EventRegistrationRepository {
   }
 
   Future<List<EventRegistration>> getForEvent(String eventId) async {
-    final rows = await client
-        .from('event_registrations')
-        .select(
-          'id, event_id, donor_id, status, registered_at, '
-          'donor:profiles!event_registrations_donor_id_fkey('
-          'full_name, blood_type, phone, next_eligible_date)',
-        )
-        .eq('event_id', eventId)
-        .order('registered_at');
-    return rows.map(EventRegistration.fromMap).toList();
+    final user = client.auth.currentUser;
+    if (user == null) throw const AuthException('Please log in again.');
+    final cacheName = 'event_registrations_$eventId';
+    try {
+      final rows = await client
+          .from('event_registrations')
+          .select(
+            'id, event_id, donor_id, status, registered_at, '
+            'donor:profiles!event_registrations_donor_id_fkey('
+            'full_name, blood_type, phone, next_eligible_date)',
+          )
+          .eq('event_id', eventId)
+          .order('registered_at');
+      await LocalCacheService.instance.saveList(
+        user.id,
+        cacheName,
+        rows.cast<Map<String, Object?>>(),
+      );
+      return rows.map(EventRegistration.fromMap).toList();
+    } on Exception {
+      final cached = await LocalCacheService.instance.loadList(
+        user.id,
+        cacheName,
+      );
+      if (cached == null) rethrow;
+      return cached.map(EventRegistration.fromMap).toList();
+    }
   }
 
   Future<EventRegistration?> getForEventAndDonor({

@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../app/theme/app_theme.dart';
 import '../../data/remote/role_request_repository.dart';
 import '../../data/remote/supabase_service.dart';
+import '../../data/local/local_cache_service.dart';
 import '../../models/user_role.dart';
 
 class RoleApplicationScreen extends StatefulWidget {
@@ -24,13 +26,66 @@ class _RoleApplicationScreenState extends State<RoleApplicationScreen> {
   UserRole requestedRole = UserRole.admin;
   List<_SelectedDocument> proofDocuments = [];
   bool isSubmitting = false;
+  Timer? draftTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    organisationController.addListener(saveDraftSoon);
+    positionController.addListener(saveDraftSoon);
+    reasonController.addListener(saveDraftSoon);
+    restoreDraft();
+  }
 
   @override
   void dispose() {
     organisationController.dispose();
     positionController.dispose();
     reasonController.dispose();
+    draftTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> restoreDraft() async {
+    final userId = SupabaseService.client?.auth.currentUser?.id;
+    if (userId == null) return;
+    final draft = await LocalCacheService.instance.loadMap(
+      userId,
+      'role_application_draft',
+    );
+    if (!mounted || draft == null) return;
+    organisationController.text = draft['organisation_name'] as String? ?? '';
+    positionController.text = draft['staff_position'] as String? ?? '';
+    reasonController.text = draft['reason'] as String? ?? '';
+    setState(() {
+      requestedRole = UserRole.fromDatabase(
+        draft['requested_role'] as String?,
+      );
+      if (requestedRole != UserRole.admin &&
+          requestedRole != UserRole.hospital) {
+        requestedRole = UserRole.admin;
+      }
+    });
+  }
+
+  void saveDraftSoon() {
+    draftTimer?.cancel();
+    draftTimer = Timer(const Duration(milliseconds: 400), saveDraft);
+  }
+
+  Future<void> saveDraft() async {
+    final userId = SupabaseService.client?.auth.currentUser?.id;
+    if (userId == null) return;
+    await LocalCacheService.instance.saveMap(
+      userId,
+      'role_application_draft',
+      {
+        'requested_role': requestedRole.databaseValue,
+        'organisation_name': organisationController.text,
+        'staff_position': positionController.text,
+        'reason': reasonController.text,
+      },
+    );
   }
 
   String? requiredValue(String? value) {
@@ -130,6 +185,11 @@ class _RoleApplicationScreenState extends State<RoleApplicationScreen> {
             )
             .toList(),
       );
+      draftTimer?.cancel();
+      await LocalCacheService.instance.remove(
+        client.auth.currentUser!.id,
+        'role_application_draft',
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Application submitted for review.')),
@@ -184,7 +244,10 @@ class _RoleApplicationScreenState extends State<RoleApplicationScreen> {
                         DropdownMenuItem(value: role, child: Text(role.label)),
                   )
                   .toList(),
-              onChanged: (role) => setState(() => requestedRole = role!),
+              onChanged: (role) {
+                setState(() => requestedRole = role!);
+                saveDraftSoon();
+              },
             ),
             const SizedBox(height: 16),
             TextFormField(

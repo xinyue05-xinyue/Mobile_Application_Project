@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../app/theme/app_theme.dart';
 import '../../data/remote/feedback_repository.dart';
 import '../../data/remote/supabase_service.dart';
+import '../../data/local/local_cache_service.dart';
 import '../../models/user_feedback.dart';
 
 class FeedbackInboxScreen extends StatefulWidget {
@@ -69,6 +70,18 @@ class _FeedbackInboxScreenState extends State<FeedbackInboxScreen> {
     }
     var status = item.status;
     final response = TextEditingController();
+    final userId = SupabaseService.client!.auth.currentUser!.id;
+    final draftName = 'feedback_reply_draft_${item.id}';
+    final draft = await LocalCacheService.instance.loadMap(userId, draftName);
+    if (draft != null) {
+      response.text = draft['response'] as String? ?? '';
+      status = draft['status'] as String? ?? status;
+    }
+    if (!mounted) {
+      response.dispose();
+      reviewing = false;
+      return;
+    }
     final save = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -178,6 +191,7 @@ class _FeedbackInboxScreenState extends State<FeedbackInboxScreen> {
         await FeedbackRepository(
           SupabaseService.client!,
         ).review(id: item.id, status: status, response: response.text);
+        await LocalCacheService.instance.remove(userId, draftName);
         if (mounted) {
           setState(() {
             feedback = load();
@@ -195,6 +209,11 @@ class _FeedbackInboxScreenState extends State<FeedbackInboxScreen> {
           );
         }
       }
+    } else {
+      await LocalCacheService.instance.saveMap(userId, draftName, {
+        'status': status,
+        'response': response.text,
+      });
     }
     response.dispose();
     reviewing = false;

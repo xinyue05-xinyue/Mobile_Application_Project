@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/donation_event.dart';
+import '../local/local_cache_service.dart';
 
 class AdminDashboardRepository {
   const AdminDashboardRepository(this.client);
@@ -76,6 +77,39 @@ class AdminDashboardRepository {
   Future<List<AdminRegistrationDetail>> getRegistrationDetails() async {
     final user = client.auth.currentUser;
     if (user == null) throw const AuthException('Please log in again.');
+    try {
+      final values = await _getRegistrationDetailsRemote();
+      await LocalCacheService.instance.saveList(
+        user.id,
+        'organisation_registration_list',
+        values
+            .map(
+              (value) => <String, Object?>{
+                'donor_name': value.donorName,
+                'blood_type': value.bloodType,
+                'event_title': value.eventTitle,
+                'event_starts_at': value.eventStartsAt.toIso8601String(),
+                'event_ends_at': value.eventEndsAt.toIso8601String(),
+                'status': value.status,
+                'registered_at': value.registeredAt.toIso8601String(),
+              },
+            )
+            .toList(),
+      );
+      return values;
+    } on Exception {
+      final cached = await LocalCacheService.instance.loadList(
+        user.id,
+        'organisation_registration_list',
+      );
+      if (cached == null) rethrow;
+      return cached.map(AdminRegistrationDetail.fromCache).toList();
+    }
+  }
+
+  Future<List<AdminRegistrationDetail>> _getRegistrationDetailsRemote() async {
+    final user = client.auth.currentUser;
+    if (user == null) throw const AuthException('Please log in again.');
     final eventRows = await client
         .from('donation_events')
         .select('id, title, starts_at, ends_at')
@@ -114,6 +148,39 @@ class AdminDashboardRepository {
   }
 
   Future<List<AdminEventAnalytics>> getEventAnalytics() async {
+    final user = client.auth.currentUser;
+    if (user == null) throw const AuthException('Please log in again.');
+    try {
+      final values = await _getEventAnalyticsRemote();
+      await LocalCacheService.instance.saveList(
+        user.id,
+        'organisation_donor_analysis',
+        values
+            .map(
+              (value) => <String, Object?>{
+                'event_id': value.eventId,
+                'title': value.title,
+                'starts_at': value.startsAt.toIso8601String(),
+                'ends_at': value.endsAt.toIso8601String(),
+                'registrations': value.registrations,
+                'verified': value.verified,
+                'blood_groups': value.bloodGroups,
+              },
+            )
+            .toList(),
+      );
+      return values;
+    } on Exception {
+      final cached = await LocalCacheService.instance.loadList(
+        user.id,
+        'organisation_donor_analysis',
+      );
+      if (cached == null) rethrow;
+      return cached.map(AdminEventAnalytics.fromCache).toList();
+    }
+  }
+
+  Future<List<AdminEventAnalytics>> _getEventAnalyticsRemote() async {
     final user = client.auth.currentUser;
     if (user == null) throw const AuthException('Please log in again.');
     final eventRows = await client
@@ -185,6 +252,19 @@ class AdminEventAnalytics {
   final int registrations;
   final int verified;
   final Map<String, int> bloodGroups;
+
+  factory AdminEventAnalytics.fromCache(Map<String, Object?> map) =>
+      AdminEventAnalytics(
+        eventId: map['event_id']! as String,
+        title: map['title']! as String,
+        startsAt: DateTime.parse(map['starts_at']! as String),
+        endsAt: DateTime.parse(map['ends_at']! as String),
+        registrations: (map['registrations']! as num).toInt(),
+        verified: (map['verified']! as num).toInt(),
+        bloodGroups: (map['blood_groups']! as Map).map(
+          (key, value) => MapEntry(key as String, (value as num).toInt()),
+        ),
+      );
 }
 
 class AdminRegistrationDetail {
@@ -205,6 +285,17 @@ class AdminRegistrationDetail {
   final DateTime eventEndsAt;
   final String status;
   final DateTime registeredAt;
+
+  factory AdminRegistrationDetail.fromCache(Map<String, Object?> map) =>
+      AdminRegistrationDetail(
+        donorName: map['donor_name']! as String,
+        bloodType: map['blood_type'] as String?,
+        eventTitle: map['event_title']! as String,
+        eventStartsAt: DateTime.parse(map['event_starts_at']! as String),
+        eventEndsAt: DateTime.parse(map['event_ends_at']! as String),
+        status: map['status']! as String,
+        registeredAt: DateTime.parse(map['registered_at']! as String),
+      );
 }
 
 class AdminDashboardSummary {

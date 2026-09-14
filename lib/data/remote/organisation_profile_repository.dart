@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/organisation_profile.dart';
+import '../local/local_cache_service.dart';
 
 class OrganisationProfileRepository {
   const OrganisationProfileRepository(this.client);
@@ -22,7 +23,28 @@ class OrganisationProfileRepository {
   Future<OrganisationProfile?> getMine() async {
     final user = client.auth.currentUser;
     if (user == null) throw const AuthException('Please log in again.');
-    return getForOwner(user.id);
+    try {
+      final row = await client
+          .from('organisation_profiles')
+          .select()
+          .eq('owner_id', user.id)
+          .maybeSingle();
+      if (row != null) {
+        await LocalCacheService.instance.saveMap(
+          user.id,
+          'institution_profile',
+          row,
+        );
+      }
+      return row == null ? null : OrganisationProfile.fromMap(row);
+    } on Exception {
+      final cached = await LocalCacheService.instance.loadMap(
+        user.id,
+        'institution_profile',
+      );
+      if (cached == null) rethrow;
+      return OrganisationProfile.fromMap(cached);
+    }
   }
 
   Future<String> uploadImage(Uint8List bytes, String extension) async {

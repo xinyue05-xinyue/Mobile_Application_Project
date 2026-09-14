@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app/theme/app_theme.dart';
 import '../data/remote/about_us_repository.dart';
 import '../data/remote/supabase_service.dart';
+import '../data/local/local_cache_service.dart';
 import '../models/about_us_content.dart';
 import '../widgets/my_darah_brand.dart';
 
@@ -168,9 +169,40 @@ class _EditAboutUsScreenState extends State<_EditAboutUsScreen> {
   late final title = TextEditingController(text: widget.current.title);
   late final body = TextEditingController(text: widget.current.content);
   bool saving = false;
+  bool savedSuccessfully = false;
+
+  @override
+  void initState() {
+    super.initState();
+    restoreDraft();
+  }
+
+  Future<void> restoreDraft() async {
+    final userId = SupabaseService.client?.auth.currentUser?.id;
+    if (userId == null) return;
+    final draft = await LocalCacheService.instance.loadMap(
+      userId,
+      'about_us_draft',
+    );
+    if (!mounted || draft == null) return;
+    setState(() {
+      title.text = draft['title'] as String? ?? title.text;
+      body.text = draft['content'] as String? ?? body.text;
+    });
+  }
+
+  Future<void> saveDraft() async {
+    final userId = SupabaseService.client?.auth.currentUser?.id;
+    if (userId == null) return;
+    await LocalCacheService.instance.saveMap(userId, 'about_us_draft', {
+      'title': title.text,
+      'content': body.text,
+    });
+  }
 
   @override
   void dispose() {
+    if (!savedSuccessfully) saveDraft();
     title.dispose();
     body.dispose();
     super.dispose();
@@ -185,6 +217,11 @@ class _EditAboutUsScreenState extends State<_EditAboutUsScreen> {
       await AboutUsRepository(
         client,
       ).update(title: title.text, content: body.text);
+      await LocalCacheService.instance.remove(
+        client.auth.currentUser!.id,
+        'about_us_draft',
+      );
+      savedSuccessfully = true;
       if (mounted) Navigator.pop(context, true);
     } catch (error) {
       if (!mounted) return;

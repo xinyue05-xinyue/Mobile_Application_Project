@@ -4,12 +4,15 @@ import '../../models/donation_centre.dart';
 import '../../models/donation_event.dart';
 import '../local/app_database.dart';
 
+// LOCAL REPOSITORY: Converts SQLite rows into app models and updates the cache.
+
 class LocalDataRepository {
   LocalDataRepository({AppDatabase? appDatabase})
     : _appDatabase = appDatabase ?? AppDatabase.instance;
 
   final AppDatabase _appDatabase;
 
+  // Adds safe sample data only when the local cache is completely empty.
   Future<void> ensureStarterData() async {
     final database = await _appDatabase.database;
     final centreCount =
@@ -75,12 +78,14 @@ class LocalDataRepository {
     }
   }
 
+  // Reads cached centres without contacting Supabase.
   Future<List<DonationCentre>> getCentres() async {
     final database = await _appDatabase.database;
     final rows = await database.query('donation_centres', orderBy: 'name');
     return rows.map(DonationCentre.fromMap).toList();
   }
 
+  // Inserts or replaces individual centre records in the cache.
   Future<void> saveCentres(Iterable<DonationCentre> centres) async {
     final database = await _appDatabase.database;
     final batch = database.batch();
@@ -95,6 +100,7 @@ class LocalDataRepository {
     await batch.commit(noResult: true);
   }
 
+  // Replaces the full centre cache after a successful remote refresh.
   Future<void> replaceCentres(Iterable<DonationCentre> centres) async {
     final database = await _appDatabase.database;
     final syncedAt = DateTime.now().toUtc().toIso8601String();
@@ -109,6 +115,7 @@ class LocalDataRepository {
     });
   }
 
+  // Reads visible cached events and excludes cancelled or unpublished entries.
   Future<List<DonationEvent>> getEvents() async {
     final database = await _appDatabase.database;
     final rows = await database.query(
@@ -120,6 +127,7 @@ class LocalDataRepository {
     return rows.map(DonationEvent.fromMap).toList();
   }
 
+  // Inserts or replaces individual event records in the cache.
   Future<void> saveEvents(Iterable<DonationEvent> events) async {
     final database = await _appDatabase.database;
     final batch = database.batch();
@@ -134,6 +142,7 @@ class LocalDataRepository {
     await batch.commit(noResult: true);
   }
 
+  // Replaces the full event cache after a successful remote refresh.
   Future<void> replaceEvents(Iterable<DonationEvent> events) async {
     final database = await _appDatabase.database;
     final syncedAt = DateTime.now().toUtc().toIso8601String();

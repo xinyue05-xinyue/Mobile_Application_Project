@@ -7,6 +7,7 @@ import '../../app/theme/app_theme.dart';
 import '../../data/remote/admin_centre_repository.dart';
 import '../../data/remote/official_centre_repository.dart';
 import '../../data/remote/supabase_service.dart';
+import '../../data/local/local_cache_service.dart';
 import '../../models/donation_centre.dart';
 import '../../widgets/location_suggestions.dart';
 
@@ -35,6 +36,7 @@ class _CentreFormScreenState extends State<CentreFormScreen> {
   final officialRepository = OfficialCentreRepository();
   List<DonationCentre> officialCentres = const [];
   List<LocationSearchResult> locationSuggestions = const [];
+  bool savedSuccessfully = false;
 
   @override
   void initState() {
@@ -54,6 +56,46 @@ class _CentreFormScreenState extends State<CentreFormScreen> {
       selectedLocation = LatLng(centre.latitude, centre.longitude);
     }
     loadOfficialCentres();
+    restoreDraft();
+  }
+
+  String get draftName => 'venue_draft_${widget.centre?.id ?? 'new'}';
+
+  Future<void> restoreDraft() async {
+    final userId = SupabaseService.client?.auth.currentUser?.id;
+    if (userId == null) return;
+    final draft = await LocalCacheService.instance.loadMap(userId, draftName);
+    if (!mounted || draft == null) return;
+    setState(() {
+      nameController.text = draft['name'] as String? ?? nameController.text;
+      addressController.text =
+          draft['address'] as String? ?? addressController.text;
+      stateController.text = draft['state'] as String? ?? stateController.text;
+      latitudeController.text =
+          draft['latitude'] as String? ?? latitudeController.text;
+      longitudeController.text =
+          draft['longitude'] as String? ?? longitudeController.text;
+      hoursController.text =
+          draft['operating_hours'] as String? ?? hoursController.text;
+      final latitude = double.tryParse(latitudeController.text);
+      final longitude = double.tryParse(longitudeController.text);
+      if (latitude != null && longitude != null) {
+        selectedLocation = LatLng(latitude, longitude);
+      }
+    });
+  }
+
+  Future<void> saveDraft() async {
+    final userId = SupabaseService.client?.auth.currentUser?.id;
+    if (userId == null) return;
+    await LocalCacheService.instance.saveMap(userId, draftName, {
+      'name': nameController.text,
+      'address': addressController.text,
+      'state': stateController.text,
+      'latitude': latitudeController.text,
+      'longitude': longitudeController.text,
+      'operating_hours': hoursController.text,
+    });
   }
 
   Future<void> loadOfficialCentres() async {
@@ -72,6 +114,7 @@ class _CentreFormScreenState extends State<CentreFormScreen> {
 
   @override
   void dispose() {
+    if (!savedSuccessfully) saveDraft();
     nameController.dispose();
     addressController.dispose();
     stateController.dispose();
@@ -229,6 +272,11 @@ class _CentreFormScreenState extends State<CentreFormScreen> {
           operatingHours: values.hours,
         );
       }
+      await LocalCacheService.instance.remove(
+        client.auth.currentUser!.id,
+        draftName,
+      );
+      savedSuccessfully = true;
       if (mounted) Navigator.pop(context, true);
     } on PostgrestException catch (error) {
       if (!mounted) return;

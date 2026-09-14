@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../app/theme/app_theme.dart';
 import '../data/remote/feedback_repository.dart';
 import '../data/remote/supabase_service.dart';
+import '../data/local/local_cache_service.dart';
 import '../models/user_feedback.dart';
 
 class FeedbackScreen extends StatefulWidget {
@@ -32,10 +33,13 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   List<FeedbackAttachment> attachments = [];
   late Future<List<UserFeedback>> feedback;
   Timer? refreshTimer;
+  Timer? draftTimer;
 
   @override
   void initState() {
     super.initState();
+    message.addListener(saveDraftSoon);
+    restoreDraft();
     feedback = load();
     refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
       if (mounted && !submitting) {
@@ -50,7 +54,38 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   void dispose() {
     message.dispose();
     refreshTimer?.cancel();
+    draftTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> restoreDraft() async {
+    final userId = SupabaseService.client?.auth.currentUser?.id;
+    if (userId == null) return;
+    final draft = await LocalCacheService.instance.loadMap(
+      userId,
+      'feedback_draft',
+    );
+    if (!mounted || draft == null) return;
+    message.text = draft['message'] as String? ?? '';
+    setState(() => category = draft['category'] as String? ?? 'general');
+  }
+
+  void saveDraftSoon() {
+    draftTimer?.cancel();
+    draftTimer = Timer(const Duration(milliseconds: 400), saveDraft);
+  }
+
+  Future<void> saveDraft() async {
+    final userId = SupabaseService.client?.auth.currentUser?.id;
+    if (userId == null) return;
+    if (message.text.trim().isEmpty && category == 'general') {
+      await LocalCacheService.instance.remove(userId, 'feedback_draft');
+      return;
+    }
+    await LocalCacheService.instance.saveMap(userId, 'feedback_draft', {
+      'category': category,
+      'message': message.text,
+    });
   }
 
   Future<List<UserFeedback>> load() {
@@ -73,8 +108,14 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         SupabaseService.client!,
       ).create(category: category, message: text, attachments: attachments);
       message.clear();
+      draftTimer?.cancel();
+      await LocalCacheService.instance.remove(
+        SupabaseService.client!.auth.currentUser!.id,
+        'feedback_draft',
+      );
       if (!mounted) return;
       setState(() {
+        category = 'general';
         attachments = [];
         feedback = load();
       });
@@ -212,7 +253,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                 child: Text('Service feedback'),
               ),
             ],
-            onChanged: (value) => setState(() => category = value ?? 'general'),
+            onChanged: (value) {
+              setState(() => category = value ?? 'general');
+              saveDraftSoon();
+            },
           ),
           const SizedBox(height: 12),
           TextField(

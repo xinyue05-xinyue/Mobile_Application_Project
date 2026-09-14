@@ -3,16 +3,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/donation_centre.dart';
 import '../../models/donation_event.dart';
 
+// REMOTE REPOSITORY: Downloads shared centre and event records from Supabase.
+
 class RemoteDataRepository {
   const RemoteDataRepository(this.client);
 
   final SupabaseClient client;
 
+  // Retrieves the latest organisation-created event venues.
   Future<List<DonationCentre>> getCentres() async {
     final rows = await client.from('donation_centres').select().order('name');
     return rows.map(DonationCentre.fromMap).toList();
   }
 
+  // Retrieves events and attaches each organisation's display name.
   Future<List<DonationEvent>> getEvents() async {
     final rows = await client
         .from('donation_events')

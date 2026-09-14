@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/emergency_request.dart';
+import '../local/local_cache_service.dart';
 
 class EmergencyRepository {
   const EmergencyRepository(this.client);
@@ -10,12 +11,26 @@ class EmergencyRepository {
   Future<List<EmergencyRequest>> getHospitalRequests() async {
     final user = client.auth.currentUser;
     if (user == null) throw const AuthException('Please log in again.');
-    final rows = await client
-        .from('emergency_requests')
-        .select()
-        .eq('hospital_id', user.id)
-        .order('created_at', ascending: false);
-    return rows.map(EmergencyRequest.fromMap).toList();
+    try {
+      final rows = await client
+          .from('emergency_requests')
+          .select()
+          .eq('hospital_id', user.id)
+          .order('created_at', ascending: false);
+      await LocalCacheService.instance.saveList(
+        user.id,
+        'hospital_emergency_requests',
+        rows.cast<Map<String, Object?>>(),
+      );
+      return rows.map(EmergencyRequest.fromMap).toList();
+    } on Exception {
+      final cached = await LocalCacheService.instance.loadList(
+        user.id,
+        'hospital_emergency_requests',
+      );
+      if (cached == null) rethrow;
+      return cached.map(EmergencyRequest.fromMap).toList();
+    }
   }
 
   Future<EmergencyRequest?> getOwnedRequest(String requestId) async {
