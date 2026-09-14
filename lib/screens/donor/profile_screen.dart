@@ -380,7 +380,7 @@ class _RoleRequests extends StatelessWidget {
                   child: ListTile(
                     title: Text(request.requestedRole.label),
                     subtitle: Text(request.organisationName),
-                    trailing: Text(request.status.toUpperCase()),
+                    trailing: Text(_roleRequestStatus(request.status)),
                   ),
                 ),
               )
@@ -390,3 +390,10 @@ class _RoleRequests extends StatelessWidget {
     );
   }
 }
+
+String _roleRequestStatus(String status) => switch (status) {
+  'approved' => 'APPROVED',
+  'rejected' => 'REJECTED',
+  'removed' => 'REMOVED',
+  _ => 'PENDING',
+};

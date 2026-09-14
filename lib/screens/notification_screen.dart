@@ -73,6 +73,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     'event' => Icons.event_outlined,
     'role' => Icons.badge_outlined,
     'reward' => Icons.stars_outlined,
+    'feedback' => Icons.feedback_outlined,
     _ => Icons.notifications_outlined,
   };
 

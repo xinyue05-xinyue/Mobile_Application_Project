@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:typed_data';
 
 import '../../app/theme/app_theme.dart';
+import '../../data/remote/admin_centre_repository.dart';
 import '../../data/remote/admin_event_repository.dart';
 import '../../data/remote/official_centre_repository.dart';
 import '../../data/remote/supabase_service.dart';
@@ -39,6 +40,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
   bool searchingLocation = false;
   final venueFocusNode = FocusNode();
   List<DonationCentre> officialCentres = const [];
+  List<DonationCentre> organisationVenues = const [];
   List<LocationSearchResult> locationSuggestions = const [];
 
   @override
@@ -55,13 +57,23 @@ class _EventFormScreenState extends State<EventFormScreen> {
     if (event?.latitude != null && event?.longitude != null) {
       location = LatLng(event!.latitude!, event.longitude!);
     }
-    loadOfficialCentres();
+    loadVenueSuggestions();
   }
 
-  Future<void> loadOfficialCentres() async {
-    final result = await OfficialCentreRepository().loadCentres();
+  Future<void> loadVenueSuggestions() async {
+    final client = SupabaseService.client;
+    final results = await Future.wait([
+      OfficialCentreRepository().loadCentres(),
+      if (client != null)
+        AdminCentreRepository(client).getCentres()
+      else
+        Future.value(const <DonationCentre>[]),
+    ]);
     if (!mounted) return;
-    setState(() => officialCentres = result.centres);
+    setState(() {
+      officialCentres = (results[0] as OfficialCentreResult).centres;
+      organisationVenues = results[1] as List<DonationCentre>;
+    });
   }
 
   Future<void> chooseImage() async {
@@ -107,9 +119,10 @@ class _EventFormScreenState extends State<EventFormScreen> {
   Iterable<DonationCentre> matchingCentres(TextEditingValue value) {
     final query = value.text.trim().toLowerCase();
     if (query.length < 2) return const Iterable<DonationCentre>.empty();
-    final matches = officialCentres.where(
+    final matches = [...organisationVenues, ...officialCentres].where(
       (centre) =>
           centre.name.toLowerCase().contains(query) ||
+          centre.address.toLowerCase().contains(query) ||
           centre.state.toLowerCase().contains(query),
     );
     return matches.take(6);
@@ -330,9 +343,18 @@ class _EventFormScreenState extends State<EventFormScreen> {
                         itemBuilder: (context, index) {
                           final centre = options.elementAt(index);
                           return ListTile(
-                            leading: const Icon(Icons.local_hospital_outlined),
+                            leading: Icon(
+                              centre.sourceId == null
+                                  ? Icons.location_on_outlined
+                                  : Icons.local_hospital_outlined,
+                            ),
                             title: Text(centre.name),
-                            subtitle: Text(centre.state),
+                            subtitle: Text(
+                              centre.sourceId == null
+                                  ? '${centre.address}\nOrganisation event venue'
+                                  : '${centre.state}\nOfficial donation centre',
+                            ),
+                            isThreeLine: true,
                             onTap: () => onSelected(centre),
                           );
                         },
