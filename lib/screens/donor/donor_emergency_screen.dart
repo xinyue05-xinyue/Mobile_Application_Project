@@ -19,6 +19,7 @@ class DonorEmergencyScreen extends StatefulWidget {
 class _DonorEmergencyScreenState extends State<DonorEmergencyScreen> {
   late Future<_EmergencyData> data;
   String? submittingRequestId;
+  String? cancellingRequestId;
 
   @override
   void initState() {
@@ -29,16 +30,21 @@ class _DonorEmergencyScreenState extends State<DonorEmergencyScreen> {
   Future<_EmergencyData> loadData() async {
     final client = SupabaseService.client;
     if (client == null) return const _EmergencyData([], {}, false);
+    final responseRepository = EmergencyResponseRepository(client);
+    final emergencyRepository = EmergencyRepository(client);
+    final responseStatuses = await responseRepository.getMyResponseStatuses();
     final results = await Future.wait([
-      EmergencyRepository(client).getMatchingDonorRequests(),
-      EmergencyResponseRepository(client).getMyPendingRequestIds(),
-      EmergencyResponseRepository(client).hasActiveDonationCommitment(),
+      emergencyRepository.getMatchingDonorRequests(),
+      emergencyRepository.getRequestsByIds(responseStatuses.keys.toSet()),
+      responseRepository.hasActiveDonationCommitment(),
     ]);
-    return _EmergencyData(
-      results[0] as List<EmergencyRequest>,
-      results[1] as Set<String>,
-      results[2] as bool,
-    );
+    final requests = <String, EmergencyRequest>{
+      for (final request in results[0] as List<EmergencyRequest>)
+        request.id: request,
+      for (final request in results[1] as List<EmergencyRequest>)
+        request.id: request,
+    }.values.toList()..sort((a, b) => a.deadline.compareTo(b.deadline));
+    return _EmergencyData(requests, responseStatuses, results[2] as bool);
   }
 
   String dateLabel(DateTime value) {
@@ -71,6 +77,49 @@ class _DonorEmergencyScreenState extends State<DonorEmergencyScreen> {
       ).showSnackBar(SnackBar(content: Text(error.message)));
     } finally {
       if (mounted) setState(() => submittingRequestId = null);
+    }
+  }
+
+  Future<void> cancel(EmergencyRequest request) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppTheme.donorBackground,
+        title: const Text('Cancel emergency response?'),
+        content: const Text(
+          'After cancelling, you can register for another available donation event or emergency request.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Keep response'),
+          ),
+          FilledButton(
+            style: AppTheme.donorPrimaryButtonStyle,
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Cancel response'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final client = SupabaseService.client;
+    if (client == null) return;
+    setState(() => cancellingRequestId = request.id);
+    try {
+      await EmergencyResponseRepository(client).cancel(request.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Emergency response cancelled.')),
+      );
+      setState(() => data = loadData());
+    } on PostgrestException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
+    } finally {
+      if (mounted) setState(() => cancellingRequestId = null);
     }
   }
 
@@ -117,7 +166,13 @@ class _DonorEmergencyScreenState extends State<DonorEmergencyScreen> {
               separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final request = value.requests[index];
-                final responded = value.pendingRequestIds.contains(request.id);
+                final responseStatus = value.responseStatuses[request.id];
+                final responded = responseStatus == 'pending';
+                final expired =
+                    responseStatus == 'expired' ||
+                    request.status != 'active' ||
+                    !request.deadline.isAfter(DateTime.now());
+                final completed = responseStatus == 'completed';
                 final blockedByAnotherCommitment =
                     value.hasActiveCommitment && !responded;
                 return Card(
@@ -135,7 +190,7 @@ class _DonorEmergencyScreenState extends State<DonorEmergencyScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                '${request.unitsNeeded} units requested',
+                                '${request.bloodType} emergency request',
                                 style: Theme.of(context).textTheme.titleLarge,
                               ),
                             ),
@@ -166,7 +221,9 @@ class _DonorEmergencyScreenState extends State<DonorEmergencyScreen> {
                         FilledButton.icon(
                           onPressed:
                               submittingRequestId != null ||
-                                  blockedByAnotherCommitment
+                                  blockedByAnotherCommitment ||
+                                  expired ||
+                                  completed
                               ? null
                               : responded
                               ? () {
@@ -199,6 +256,28 @@ class _DonorEmergencyScreenState extends State<DonorEmergencyScreen> {
                                 : 'I can donate',
                           ),
                         ),
+                        if (responded) ...[
+                          const SizedBox(height: 8),
+                          OutlinedButton.icon(
+                            onPressed: cancellingRequestId == null
+                                ? () => cancel(request)
+                                : null,
+                            icon: const Icon(Icons.cancel_outlined),
+                            label: Text(
+                              cancellingRequestId == request.id
+                                  ? 'Cancelling...'
+                                  : 'Cancel response',
+                            ),
+                          ),
+                        ],
+                        if (expired) ...[
+                          const SizedBox(height: 8),
+                          const Chip(label: Text('Expired')),
+                        ],
+                        if (completed) ...[
+                          const SizedBox(height: 8),
+                          const Chip(label: Text('Completed')),
+                        ],
                       ],
                     ),
                   ),
@@ -215,11 +294,11 @@ class _DonorEmergencyScreenState extends State<DonorEmergencyScreen> {
 class _EmergencyData {
   const _EmergencyData(
     this.requests,
-    this.pendingRequestIds,
+    this.responseStatuses,
     this.hasActiveCommitment,
   );
 
   final List<EmergencyRequest> requests;
-  final Set<String> pendingRequestIds;
+  final Map<String, String> responseStatuses;
   final bool hasActiveCommitment;
 }

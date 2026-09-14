@@ -208,9 +208,10 @@ class _EmergencyResponsesScreenState extends State<EmergencyResponsesScreen> {
                     ),
                     title: Text(response.donorName),
                     subtitle: Text('Status: ${response.status}'),
-                    trailing: response.status != 'pending'
+                    trailing: response.status == 'completed'
                         ? const Icon(Icons.verified, color: Colors.green)
-                        : FilledButton(
+                        : response.status == 'pending'
+                        ? FilledButton(
                             style: FilledButton.styleFrom(
                               backgroundColor: AppTheme.hospital,
                               foregroundColor: Colors.white,
@@ -229,6 +230,13 @@ class _EmergencyResponsesScreenState extends State<EmergencyResponsesScreen> {
                                     ),
                                   )
                                 : const Text('Verify'),
+                          )
+                        : Chip(
+                            label: Text(
+                              response.status == 'expired'
+                                  ? 'Expired'
+                                  : 'Cancelled',
+                            ),
                           ),
                   ),
                 );

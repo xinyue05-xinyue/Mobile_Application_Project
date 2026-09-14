@@ -107,8 +107,7 @@ class _EmergencyQrScannerScreenState extends State<EmergencyQrScannerScreen> {
       surfaceTintColor: Colors.transparent,
       title: const Text('Confirm completed donation'),
       content: Text(
-        'Emergency request: ${request.bloodType}, '
-        '${request.unitsNeeded} unit${request.unitsNeeded == 1 ? '' : 's'}\n'
+        'Emergency request: ${request.bloodType}\n'
         'Donor: ${response.donorName}\n'
         'Blood type: ${response.bloodType ?? 'Not set'}\n\n'
         'Confirm the donor identity and completed blood collection. '

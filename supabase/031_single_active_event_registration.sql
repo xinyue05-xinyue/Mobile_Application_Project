@@ -231,7 +231,16 @@ begin
 
   insert into public.emergency_responses (request_id, donor_id)
   values (p_request_id, auth.uid())
+  on conflict (request_id, donor_id) do update
+  set status = 'pending',
+      created_at = now(),
+      completed_at = null
+  where public.emergency_responses.status in ('cancelled', 'expired')
   returning id into response_id;
+
+  if response_id is null then
+    raise exception 'You have already responded to this emergency request';
+  end if;
 
   return response_id;
 exception

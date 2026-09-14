@@ -13,7 +13,7 @@ class AppDatabase {
     final databasePath = await getDatabasesPath();
     _database = await openDatabase(
       path.join(databasePath, 'my_darah.db'),
-      version: 7,
+      version: 8,
       onConfigure: (database) async {
         await database.execute('PRAGMA foreign_keys = ON');
       },
@@ -62,7 +62,6 @@ class AppDatabase {
         id TEXT PRIMARY KEY,
         hospital_id TEXT NOT NULL,
         blood_type TEXT NOT NULL,
-        units_needed INTEGER NOT NULL CHECK (units_needed > 0),
         urgency TEXT NOT NULL,
         deadline TEXT NOT NULL,
         status TEXT NOT NULL,
@@ -119,6 +118,30 @@ class AppDatabase {
     if (oldVersion < 7) {
       await database.execute(
         'ALTER TABLE donation_events ADD COLUMN publish_at TEXT',
+      );
+    }
+    if (oldVersion < 8) {
+      await database.execute('''
+        CREATE TABLE emergency_requests_new (
+          id TEXT PRIMARY KEY,
+          hospital_id TEXT NOT NULL,
+          blood_type TEXT NOT NULL,
+          urgency TEXT NOT NULL,
+          deadline TEXT NOT NULL,
+          status TEXT NOT NULL,
+          synced_at TEXT NOT NULL
+        )
+      ''');
+      await database.execute('''
+        INSERT INTO emergency_requests_new (
+          id, hospital_id, blood_type, urgency, deadline, status, synced_at
+        )
+        SELECT id, hospital_id, blood_type, urgency, deadline, status, synced_at
+        FROM emergency_requests
+      ''');
+      await database.execute('DROP TABLE emergency_requests');
+      await database.execute(
+        'ALTER TABLE emergency_requests_new RENAME TO emergency_requests',
       );
     }
     if (oldVersion < 5) {

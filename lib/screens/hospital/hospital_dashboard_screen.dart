@@ -404,9 +404,8 @@ class _RequestCard extends StatelessWidget {
                 value: request.urgency.toUpperCase(),
               ),
               _DetailRow(
-                label: 'Blood required',
-                value:
-                    '${request.unitsNeeded} unit${request.unitsNeeded == 1 ? '' : 's'} of ${request.bloodType}',
+                label: 'Blood type required',
+                value: request.bloodType,
               ),
               _DetailRow(label: 'Created', value: dateLabel(request.createdAt)),
               _DetailRow(label: 'Deadline', value: dateLabel(request.deadline)),
@@ -453,7 +452,7 @@ class _RequestCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${request.unitsNeeded} units needed',
+                        '${request.bloodType} emergency request',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       Text(

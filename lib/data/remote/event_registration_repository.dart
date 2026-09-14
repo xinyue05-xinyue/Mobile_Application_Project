@@ -17,6 +17,7 @@ class EventRegistrationRepository {
   Future<Map<String, String>> getMyRegistrationStatuses() async {
     final user = client.auth.currentUser;
     if (user == null) return const {};
+    await client.rpc('refresh_my_donation_commitments');
     final rows = await client
         .from('event_registrations')
         .select('event_id, status')

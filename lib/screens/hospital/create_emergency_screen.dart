@@ -15,17 +15,10 @@ class CreateEmergencyScreen extends StatefulWidget {
 class _CreateEmergencyScreenState extends State<CreateEmergencyScreen> {
   static const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
   final formKey = GlobalKey<FormState>();
-  final unitsController = TextEditingController(text: '1');
   String bloodType = 'O+';
   String urgency = 'urgent';
   DateTime? deadline;
   bool isSaving = false;
-
-  @override
-  void dispose() {
-    unitsController.dispose();
-    super.dispose();
-  }
 
   String deadlineLabel() {
     final value = deadline;
@@ -74,12 +67,9 @@ class _CreateEmergencyScreenState extends State<CreateEmergencyScreen> {
     if (client == null) return;
     setState(() => isSaving = true);
     try {
-      await EmergencyRepository(client).create(
-        bloodType: bloodType,
-        unitsNeeded: int.parse(unitsController.text),
-        urgency: urgency,
-        deadline: deadline!,
-      );
+      await EmergencyRepository(
+        client,
+      ).create(bloodType: bloodType, urgency: urgency, deadline: deadline!);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Emergency request created.')),
@@ -121,19 +111,6 @@ class _CreateEmergencyScreenState extends State<CreateEmergencyScreen> {
                   )
                   .toList(),
               onChanged: (value) => setState(() => bloodType = value!),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: unitsController,
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                final units = int.tryParse(value ?? '');
-                if (units == null || units < 1 || units > 100) {
-                  return 'Enter between 1 and 100 units.';
-                }
-                return null;
-              },
-              decoration: const InputDecoration(labelText: 'Units needed'),
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(

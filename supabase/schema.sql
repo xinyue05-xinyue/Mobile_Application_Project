@@ -51,7 +51,6 @@ create table public.emergency_requests (
   id uuid primary key default gen_random_uuid(),
   hospital_id uuid not null references public.profiles(id),
   blood_type text not null check (blood_type in ('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-')),
-  units_needed integer not null check (units_needed > 0),
   urgency text not null check (urgency in ('normal', 'urgent', 'critical')),
   deadline timestamptz not null,
   status public.request_status not null default 'active',

@@ -8,14 +8,34 @@ class EmergencyResponseRepository {
   final SupabaseClient client;
 
   Future<Set<String>> getMyPendingRequestIds() async {
+    final statuses = await getMyResponseStatuses();
+    return statuses.entries
+        .where((entry) => entry.value == 'pending')
+        .map((entry) => entry.key)
+        .toSet();
+  }
+
+  Future<Map<String, String>> getMyResponseStatuses() async {
     final user = client.auth.currentUser;
-    if (user == null) return const {};
+    if (user == null) return const <String, String>{};
+    await client.rpc('refresh_my_donation_commitments');
     final rows = await client
         .from('emergency_responses')
-        .select('request_id')
-        .eq('donor_id', user.id)
-        .eq('status', 'pending');
-    return rows.map((row) => row['request_id']! as String).toSet();
+        .select('request_id, status')
+        .eq('donor_id', user.id);
+    return {
+      for (final row in rows)
+        row['request_id']! as String: row['status']! as String,
+    };
+  }
+
+  Future<void> cancel(String requestId) async {
+    final user = client.auth.currentUser;
+    if (user == null) throw const AuthException('Please log in again.');
+    await client.rpc(
+      'cancel_my_emergency_response',
+      params: {'p_request_id': requestId},
+    );
   }
 
   Future<void> respond(String requestId) async {

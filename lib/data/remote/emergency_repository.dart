@@ -61,7 +61,6 @@ class EmergencyRepository {
 
   Future<void> create({
     required String bloodType,
-    required int unitsNeeded,
     required String urgency,
     required DateTime deadline,
   }) async {
@@ -70,11 +69,20 @@ class EmergencyRepository {
     await client.from('emergency_requests').insert({
       'hospital_id': user.id,
       'blood_type': bloodType,
-      'units_needed': unitsNeeded,
       'urgency': urgency,
       'deadline': deadline.toUtc().toIso8601String(),
       'status': 'active',
     });
+  }
+
+  Future<List<EmergencyRequest>> getRequestsByIds(Set<String> ids) async {
+    if (ids.isEmpty) return const [];
+    final rows = await client
+        .from('emergency_requests')
+        .select()
+        .inFilter('id', ids.toList())
+        .order('deadline', ascending: false);
+    return rows.map(EmergencyRequest.fromMap).toList();
   }
 
   Future<void> updateStatus(String id, String status) async {

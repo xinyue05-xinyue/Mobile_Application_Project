@@ -36,12 +36,11 @@ Future<Map<String, String>> donationDetails(DonationRecord donation) async {
   } else if (donation.emergencyRequestId != null) {
     final row = await client
         .from('emergency_requests')
-        .select('blood_type, units_needed, urgency, deadline, status')
+        .select('blood_type, urgency, deadline, status')
         .eq('id', donation.emergencyRequestId!)
         .maybeSingle();
     if (row != null) {
       result['Requested blood type'] = '${row['blood_type']}';
-      result['Units requested'] = '${row['units_needed']}';
       result['Urgency'] = '${row['urgency']}';
       result['Request deadline'] = eventDateTime(
         DateTime.parse(row['deadline'] as String),

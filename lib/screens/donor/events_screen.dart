@@ -91,8 +91,9 @@ class _EventsScreenState extends State<EventsScreen> {
 
       final registrationStatus = registrationStatuses[event.id];
       return event.status == 'ended' &&
-          registrationStatus == 'registered' &&
-          event.endsAt.add(const Duration(days: 1)).isAfter(now);
+          (registrationStatus == 'registered' ||
+              registrationStatus == 'attended' ||
+              registrationStatus == 'expired');
     }).toList();
     return _EventData(
       visibleEvents,
@@ -191,7 +192,9 @@ class _EventsScreenState extends State<EventsScreen> {
     );
     final eligible = accountAvailable && eligibilityMessage == null;
     final hasRegistration =
-        registrationStatus == 'registered' || registrationStatus == 'attended';
+        registrationStatus == 'registered' ||
+        registrationStatus == 'attended' ||
+        registrationStatus == 'expired';
     final ended = !event.registrationOpenAt(DateTime.now());
     final qrEventId = await Navigator.push<String>(
       context,
@@ -351,6 +354,8 @@ class _EventsScreenState extends State<EventsScreen> {
                       label: Text(
                         registrationStatus == 'attended'
                             ? 'Attendance verified'
+                            : registrationStatus == 'expired'
+                            ? 'Expired'
                             : registrationStatus != null
                             ? 'Already registered'
                             : ended
@@ -754,7 +759,9 @@ class _EventsScreenState extends State<EventsScreen> {
     required bool hasActiveCommitment,
   }) {
     final registered =
-        registrationStatus == 'registered' || registrationStatus == 'attended';
+        registrationStatus == 'registered' ||
+        registrationStatus == 'attended' ||
+        registrationStatus == 'expired';
     final eligibilityMessage = registrationEligibilityMessage(
       event,
       nextEligibleDate,
@@ -911,6 +918,8 @@ class _EventsScreenState extends State<EventsScreen> {
                   label: Text(
                     registrationStatus == 'attended'
                         ? 'Attended'
+                        : registrationStatus == 'expired'
+                        ? 'Expired'
                         : registered
                         ? 'Registered'
                         : ended
@@ -960,7 +969,8 @@ class _EventsScreenState extends State<EventsScreen> {
               .where(
                 (event) =>
                     value.registrationStatuses[event.id] == 'registered' ||
-                    value.registrationStatuses[event.id] == 'attended',
+                    value.registrationStatuses[event.id] == 'attended' ||
+                    value.registrationStatuses[event.id] == 'expired',
               )
               .toList();
           final available = matching
