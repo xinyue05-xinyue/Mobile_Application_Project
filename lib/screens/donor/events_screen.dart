@@ -50,12 +50,17 @@ class _EventsScreenState extends State<EventsScreen> {
     DateTime? nextEligibleDate;
     DateTime? dateOfBirth;
     String? phone;
+    var hasActiveCommitment = false;
     accountAvailable = false;
     if (client != null) {
       try {
-        registrationStatuses = await EventRegistrationRepository(
-          client,
-        ).getMyRegistrationStatuses().timeout(const Duration(seconds: 10));
+        final registrationRepository = EventRegistrationRepository(client);
+        registrationStatuses = await registrationRepository
+            .getMyRegistrationStatuses()
+            .timeout(const Duration(seconds: 10));
+        hasActiveCommitment = await registrationRepository
+            .hasActiveDonationCommitment()
+            .timeout(const Duration(seconds: 10));
         final profile = await ProfileRepository(
           client,
         ).getCurrentProfile().timeout(const Duration(seconds: 10));
@@ -68,6 +73,16 @@ class _EventsScreenState extends State<EventsScreen> {
       }
     }
     final now = DateTime.now();
+    final activeRegistrationEventId = events
+        .where(
+          (event) =>
+              registrationStatuses[event.id] == 'registered' &&
+              event.status != 'ended' &&
+              event.status != 'cancelled' &&
+              event.endsAt.isAfter(now),
+        )
+        .map((event) => event.id)
+        .firstOrNull;
     final visibleEvents = events.where((event) {
       if (event.status == 'upcoming' || event.status == 'in_progress') {
         return event.endsAt.isAfter(now);
@@ -84,6 +99,8 @@ class _EventsScreenState extends State<EventsScreen> {
       nextEligibleDate,
       dateOfBirth,
       phone,
+      activeRegistrationEventId,
+      hasActiveCommitment,
     );
   }
 
@@ -118,7 +135,16 @@ class _EventsScreenState extends State<EventsScreen> {
     DateTime? nextEligibleDate,
     DateTime? dateOfBirth,
     String? phone,
+    String? activeRegistrationEventId,
+    bool hasActiveCommitment,
   ) {
+    if (hasActiveCommitment && activeRegistrationEventId == null) {
+      return 'You already have an active emergency donation response.';
+    }
+    if (activeRegistrationEventId != null &&
+        activeRegistrationEventId != event.id) {
+      return 'You are already registered for another active event.';
+    }
     if (dateOfBirth == null) {
       return 'Add your date of birth in Profile before registering.';
     }
@@ -147,6 +173,8 @@ class _EventsScreenState extends State<EventsScreen> {
     required DateTime? nextEligibleDate,
     required DateTime? dateOfBirth,
     required String? phone,
+    required String? activeRegistrationEventId,
+    required bool hasActiveCommitment,
   }) async {
     final existingReminder = await EventReminderService.instance.reminderFor(
       event.id,
@@ -157,6 +185,8 @@ class _EventsScreenState extends State<EventsScreen> {
       nextEligibleDate,
       dateOfBirth,
       phone,
+      activeRegistrationEventId,
+      hasActiveCommitment,
     );
     final eligible = accountAvailable && eligibilityMessage == null;
     final ended = !event.registrationOpenAt(DateTime.now());
@@ -654,6 +684,8 @@ class _EventsScreenState extends State<EventsScreen> {
     required DateTime? nextEligibleDate,
     required DateTime? dateOfBirth,
     required String? phone,
+    required String? activeRegistrationEventId,
+    required bool hasActiveCommitment,
   }) {
     final registered = registrationStatus != null;
     final eligibilityMessage = registrationEligibilityMessage(
@@ -661,6 +693,8 @@ class _EventsScreenState extends State<EventsScreen> {
       nextEligibleDate,
       dateOfBirth,
       phone,
+      activeRegistrationEventId,
+      hasActiveCommitment,
     );
     final eligible = accountAvailable && eligibilityMessage == null;
     final ended = !event.registrationOpenAt(DateTime.now());
@@ -785,6 +819,8 @@ class _EventsScreenState extends State<EventsScreen> {
                     nextEligibleDate: nextEligibleDate,
                     dateOfBirth: dateOfBirth,
                     phone: phone,
+                    activeRegistrationEventId: activeRegistrationEventId,
+                    hasActiveCommitment: hasActiveCommitment,
                     registrationStatus: registrationStatus,
                   ),
                   child: const Text('View details'),
@@ -850,7 +886,8 @@ class _EventsScreenState extends State<EventsScreen> {
             );
           }
           final value =
-              snapshot.data ?? const _EventData([], {}, null, null, null);
+              snapshot.data ??
+              const _EventData([], {}, null, null, null, null, false);
           final matching = value.events.where(matchesSearch).toList();
           final registered = matching
               .where(
@@ -923,6 +960,9 @@ class _EventsScreenState extends State<EventsScreen> {
                                 nextEligibleDate: value.nextEligibleDate,
                                 dateOfBirth: value.dateOfBirth,
                                 phone: value.phone,
+                                activeRegistrationEventId:
+                                    value.activeRegistrationEventId,
+                                hasActiveCommitment: value.hasActiveCommitment,
                               ),
                               const SizedBox(height: 8),
                             ],
@@ -969,6 +1009,9 @@ class _EventsScreenState extends State<EventsScreen> {
                       nextEligibleDate: value.nextEligibleDate,
                       dateOfBirth: value.dateOfBirth,
                       phone: value.phone,
+                      activeRegistrationEventId:
+                          value.activeRegistrationEventId,
+                      hasActiveCommitment: value.hasActiveCommitment,
                     ),
                     const SizedBox(height: 12),
                   ],
@@ -988,6 +1031,8 @@ class _EventData {
     this.nextEligibleDate,
     this.dateOfBirth,
     this.phone,
+    this.activeRegistrationEventId,
+    this.hasActiveCommitment,
   );
 
   final List<DonationEvent> events;
@@ -995,6 +1040,8 @@ class _EventData {
   final DateTime? nextEligibleDate;
   final DateTime? dateOfBirth;
   final String? phone;
+  final String? activeRegistrationEventId;
+  final bool hasActiveCommitment;
 }
 
 enum _ReminderChoice { oneDayBefore, twoHoursBefore, custom, cancel }

@@ -21,10 +21,15 @@ class EmergencyResponseRepository {
   Future<void> respond(String requestId) async {
     final user = client.auth.currentUser;
     if (user == null) throw const AuthException('Please log in again.');
-    await client.from('emergency_responses').insert({
-      'request_id': requestId,
-      'donor_id': user.id,
-    });
+    await client.rpc(
+      'respond_to_emergency',
+      params: {'p_request_id': requestId},
+    );
+  }
+
+  Future<bool> hasActiveDonationCommitment() async {
+    final value = await client.rpc('has_active_donation_commitment');
+    return value == true;
   }
 
   Future<List<EmergencyResponse>> getForRequest(String requestId) async {

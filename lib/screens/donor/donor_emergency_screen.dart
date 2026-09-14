@@ -28,14 +28,16 @@ class _DonorEmergencyScreenState extends State<DonorEmergencyScreen> {
 
   Future<_EmergencyData> loadData() async {
     final client = SupabaseService.client;
-    if (client == null) return const _EmergencyData([], {});
+    if (client == null) return const _EmergencyData([], {}, false);
     final results = await Future.wait([
       EmergencyRepository(client).getMatchingDonorRequests(),
       EmergencyResponseRepository(client).getMyPendingRequestIds(),
+      EmergencyResponseRepository(client).hasActiveDonationCommitment(),
     ]);
     return _EmergencyData(
       results[0] as List<EmergencyRequest>,
       results[1] as Set<String>,
+      results[2] as bool,
     );
   }
 
@@ -93,7 +95,7 @@ class _DonorEmergencyScreenState extends State<DonorEmergencyScreen> {
               child: Text('Unable to load alerts: ${snapshot.error}'),
             );
           }
-          final value = snapshot.data ?? const _EmergencyData([], {});
+          final value = snapshot.data ?? const _EmergencyData([], {}, false);
           if (value.requests.isEmpty) {
             return const Center(
               child: Padding(
@@ -116,6 +118,8 @@ class _DonorEmergencyScreenState extends State<DonorEmergencyScreen> {
               itemBuilder: (context, index) {
                 final request = value.requests[index];
                 final responded = value.pendingRequestIds.contains(request.id);
+                final blockedByAnotherCommitment =
+                    value.hasActiveCommitment && !responded;
                 return Card(
                   color: request.urgency == 'critical'
                       ? Theme.of(context).colorScheme.errorContainer
@@ -149,9 +153,20 @@ class _DonorEmergencyScreenState extends State<DonorEmergencyScreen> {
                         const Text(
                           'Complete the hospital eligibility screening before donating.',
                         ),
+                        if (blockedByAnotherCommitment) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Complete or wait for your current donation commitment to end before responding.',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 12),
                         FilledButton.icon(
-                          onPressed: submittingRequestId != null
+                          onPressed:
+                              submittingRequestId != null ||
+                                  blockedByAnotherCommitment
                               ? null
                               : responded
                               ? () {
@@ -198,8 +213,13 @@ class _DonorEmergencyScreenState extends State<DonorEmergencyScreen> {
 }
 
 class _EmergencyData {
-  const _EmergencyData(this.requests, this.pendingRequestIds);
+  const _EmergencyData(
+    this.requests,
+    this.pendingRequestIds,
+    this.hasActiveCommitment,
+  );
 
   final List<EmergencyRequest> requests;
   final Set<String> pendingRequestIds;
+  final bool hasActiveCommitment;
 }

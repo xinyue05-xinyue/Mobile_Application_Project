@@ -33,6 +33,11 @@ class EventRegistrationRepository {
     await client.rpc('register_for_event', params: {'p_event_id': eventId});
   }
 
+  Future<bool> hasActiveDonationCommitment() async {
+    final value = await client.rpc('has_active_donation_commitment');
+    return value == true;
+  }
+
   Future<List<EventRegistration>> getForEvent(String eventId) async {
     final rows = await client
         .from('event_registrations')
