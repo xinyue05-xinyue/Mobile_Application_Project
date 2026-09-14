@@ -8,6 +8,18 @@ with event_state as (
       else 'upcoming'
     end as expected_status
   from public.donation_events event
+), latest_role_request as (
+  select request.*
+  from (
+    select
+      role_request.*,
+      row_number() over (
+        partition by role_request.user_id
+        order by role_request.created_at desc, role_request.id desc
+      ) as request_number
+    from public.role_requests role_request
+  ) request
+  where request.request_number = 1
 ), findings as (
   select
     'HIGH'::text as severity,
@@ -187,7 +199,7 @@ with event_state as (
     request.id,
     profile.full_name,
     'Requested role=' || request.requested_role::text || ', profile role=' || profile.role::text
-  from public.role_requests request
+  from latest_role_request request
   join public.profiles profile on profile.id = request.user_id
   where request.status = 'approved'
     and profile.role::text = 'donor'
@@ -200,7 +212,7 @@ with event_state as (
     request.id,
     profile.full_name,
     'Application status=removed, profile role=' || profile.role::text
-  from public.role_requests request
+  from latest_role_request request
   join public.profiles profile on profile.id = request.user_id
   where request.status = 'removed'
     and profile.role::text <> 'donor'
