@@ -70,9 +70,9 @@ class _QrAttendanceScannerScreenState extends State<QrAttendanceScannerScreen> {
     if (event.status == 'cancelled') {
       throw const FormatException('This event has been cancelled.');
     }
-    if (event.startsAt.isAfter(DateTime.now())) {
+    if (event.status != 'in_progress') {
       throw FormatException(
-        'Attendance for ${event.title} can only be verified after the event starts.',
+        'Attendance for ${event.title} can only be verified while the event is in progress.',
       );
     }
     return event;

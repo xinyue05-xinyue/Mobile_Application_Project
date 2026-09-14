@@ -36,7 +36,7 @@ create table public.donation_events (
   venue text not null,
   starts_at timestamptz not null,
   ends_at timestamptz not null,
-  status text not null default 'upcoming' check (status in ('upcoming', 'completed', 'cancelled')),
+  status text not null default 'upcoming' check (status in ('upcoming', 'in_progress', 'ended', 'cancelled')),
   description text,
   created_by uuid not null references public.profiles(id),
   created_at timestamptz not null default now(),

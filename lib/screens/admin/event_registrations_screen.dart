@@ -103,15 +103,16 @@ class _EventRegistrationsScreenState extends State<EventRegistrationsScreen> {
     }
   }
 
-  bool get canVerify =>
-      widget.event.status != 'cancelled' &&
-      !widget.event.startsAt.isAfter(DateTime.now());
+  bool get canVerify => widget.event.status == 'in_progress';
 
   String get verificationMessage {
     if (widget.event.status == 'cancelled') {
       return 'Attendance cannot be verified for a cancelled event.';
     }
-    return 'Attendance can only be verified after the event starts.';
+    if (widget.event.status == 'ended') {
+      return 'Attendance can no longer be verified because this event has ended.';
+    }
+    return 'Attendance can only be verified while the event is in progress.';
   }
 
   @override

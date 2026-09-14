@@ -37,10 +37,12 @@ class _ManageEventsScreenState extends State<ManageEventsScreen> {
   }
 
   String displayStatus(DonationEvent event) {
-    if (event.status == 'cancelled') return 'Cancelled';
-    if (!event.endsAt.isAfter(DateTime.now())) return 'Ended';
-    if (!event.startsAt.isAfter(DateTime.now())) return 'In progress';
-    return 'Upcoming';
+    return switch (event.status) {
+      'in_progress' => 'In progress',
+      'ended' => 'Ended',
+      'cancelled' => 'Cancelled',
+      _ => 'Upcoming',
+    };
   }
 
   Future<void> openForm([DonationEvent? event]) async {

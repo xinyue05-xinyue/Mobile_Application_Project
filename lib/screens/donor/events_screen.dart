@@ -64,11 +64,13 @@ class _EventsScreenState extends State<EventsScreen> {
     }
     final now = DateTime.now();
     final visibleEvents = events.where((event) {
-      if (event.status != 'upcoming') return false;
-      if (event.endsAt.isAfter(now)) return true;
+      if (event.status == 'upcoming' || event.status == 'in_progress') {
+        return event.endsAt.isAfter(now);
+      }
 
       final registrationStatus = registrationStatuses[event.id];
-      return registrationStatus == 'registered' &&
+      return event.status == 'ended' &&
+          registrationStatus == 'registered' &&
           event.endsAt.add(const Duration(days: 1)).isAfter(now);
     }).toList();
     return _EventData(visibleEvents, registrationStatuses, nextEligibleDate);

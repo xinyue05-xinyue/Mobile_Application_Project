@@ -33,7 +33,7 @@ class DonationEvent {
       publishAt == null || !publishAt!.isAfter(DateTime.now());
 
   bool registrationOpenAt(DateTime now) =>
-      status == 'upcoming' && endsAt.isAfter(now);
+      (status == 'upcoming' || status == 'in_progress') && endsAt.isAfter(now);
 
   bool eligibleOnEventDate(DateTime? nextEligibleDate) {
     if (nextEligibleDate == null) return true;
