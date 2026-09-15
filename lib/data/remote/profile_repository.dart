@@ -6,7 +6,6 @@ import '../../models/profile_overview.dart';
 import '../../models/reward_transaction.dart';
 import '../local/local_cache_service.dart';
 
-// PROFILE REPOSITORY: Loads authoritative donor data and maintains offline copies.
 
 class ProfileRepository {
   const ProfileRepository(this.client);

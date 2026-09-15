@@ -1,16 +1,13 @@
 import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart';
 
-// LOCAL DATABASE: Creates and upgrades the SQLite cache used on mobile devices.
 
 class AppDatabase {
   AppDatabase._();
 
-  // Singleton connection prevents the app from opening the database repeatedly.
   static final AppDatabase instance = AppDatabase._();
   Database? _database;
 
-  // Opens my_darah.db on first use and reuses it afterward.
   Future<Database> get database async {
     if (_database case final database?) return database;
 
@@ -27,7 +24,6 @@ class AppDatabase {
     return _database!;
   }
 
-  // Creates every table required by a new installation.
   Future<void> _createSchema(Database database, int version) async {
     await database.execute('''
       CREATE TABLE donation_centres (
@@ -102,7 +98,6 @@ class AppDatabase {
     await _createModuleCaches(database);
   }
 
-  // Migrates existing installations while preserving their cached data.
   Future<void> _upgradeSchema(
     Database database,
     int oldVersion,
@@ -165,7 +160,6 @@ class AppDatabase {
     if (oldVersion < 9) await _createModuleCaches(database);
   }
 
-  // Cached public statistics downloaded from the government data source.
   Future<void> _createGovernmentStats(Database database) async {
     await database.execute('''
       CREATE TABLE IF NOT EXISTS government_donation_stats (
@@ -179,7 +173,6 @@ class AppDatabase {
     ''');
   }
 
-  // Cached official blood collection centres used by maps and search.
   Future<void> _createOfficialCentres(Database database) async {
     await database.execute('''
       CREATE TABLE IF NOT EXISTS official_donation_centres (
@@ -196,9 +189,6 @@ class AppDatabase {
     ''');
   }
 
-  // Every business module owns one SQLite table for cached lists and drafts.
-  // The JSON payload keeps the storage reusable while Supabase remains the
-  // authoritative database for shared and security-sensitive records.
   Future<void> _createModuleCaches(Database database) async {
     const tables = [
       'user_access_local',

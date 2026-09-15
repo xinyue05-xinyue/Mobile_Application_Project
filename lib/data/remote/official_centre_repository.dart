@@ -24,7 +24,7 @@ class OfficialCentreRepository {
       return OfficialCentreResult(centres: cached, isFromCache: true);
     }
   }
-//supabase(qq)1.2
+
   Future<List<DonationCentre>> _getRemoteCentres() async {
     final client = SupabaseService.client;
     if (client == null) throw StateError('Supabase is not configured.');
@@ -52,7 +52,7 @@ class OfficialCentreRepository {
     return rows.map(DonationCentre.fromMap).toList();
   }
 
-  //sqlite
+
   Future<void> _replaceCache(Iterable<DonationCentre> centres) async {
     final database = await _appDatabase.database;
     final existingAddresses = <String, String>{
@@ -95,7 +95,7 @@ class OfficialCentreRepository {
       if (payload is! Map || payload['address'] is! String) {
         throw const FormatException('Unexpected address service response.');
       }
-      final address = payload['address'] as String; //sqlite1.1
+      final address = payload['address'] as String;
       if (supportsMobileSqlite) {
         final database = await _appDatabase.database;
         await database.update(
@@ -118,7 +118,6 @@ class OfficialCentreRepository {
     return results.first;
   }
 
-  //supabase(qq)1.1
   Future<List<LocationSearchResult>> searchLocations(String query) async {
     final client = SupabaseService.client;
     if (client == null) throw StateError('Supabase is not configured.');

@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   setUp(() {
-    // Widget tests have no Android SQLite plugin, so verify the desktop fallback.
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     SharedPreferences.setMockInitialValues({});
   });

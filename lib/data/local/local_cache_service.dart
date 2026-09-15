@@ -6,15 +6,11 @@ import 'package:sqflite/sqflite.dart';
 import 'app_database.dart';
 import 'platform_support.dart';
 
-// LOCAL CACHE AND DRAFTS: Routes each feature to its module's SQLite table.
-
 class LocalCacheService {
   LocalCacheService._();
 
-  // One shared instance is used throughout the app.
   static final LocalCacheService instance = LocalCacheService._();
 
-  // Saves a list such as notifications, rewards, events, or feedback.
   Future<void> saveList(
     String userId,
     String name,
@@ -28,7 +24,6 @@ class LocalCacheService {
     await preferences.setString(_key(userId, name), jsonEncode(value));
   }
 
-  // Returns null when no cache has ever been saved for this user and feature.
   Future<List<Map<String, Object?>>?> loadList(
     String userId,
     String name,
@@ -43,7 +38,6 @@ class LocalCacheService {
         .toList();
   }
 
-  // Saves one object such as a profile or unfinished form draft.
   Future<void> saveMap(
     String userId,
     String name,
@@ -57,7 +51,6 @@ class LocalCacheService {
     await preferences.setString(_key(userId, name), jsonEncode(value));
   }
 
-  // Loads one cached object and converts decoded JSON into a Dart map.
   Future<Map<String, Object?>?> loadMap(String userId, String name) async {
     final value = await _loadValue(userId, name);
     if (value == null) return null;
@@ -65,7 +58,6 @@ class LocalCacheService {
     return decoded is Map ? Map<String, Object?>.from(decoded) : null;
   }
 
-  // Clears a draft after successful submission or removes an obsolete cache.
   Future<void> remove(String userId, String name) async {
     if (supportsMobileSqlite) {
       final database = await AppDatabase.instance.database;
@@ -75,15 +67,12 @@ class LocalCacheService {
         whereArgs: [userId, name],
       );
     }
-    // Also clear a value left by an app version that used SharedPreferences.
     final preferences = await SharedPreferences.getInstance();
     await preferences.remove(_key(userId, name));
   }
 
-  // Including userId prevents one account from reading another account's cache.
   String _key(String userId, String name) => 'local_${userId}_$name';
 
-  // Inserts or replaces one user-scoped cache entry in its module table.
   Future<void> _saveToSqlite(
     String userId,
     String name,
@@ -100,7 +89,6 @@ class LocalCacheService {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  // Reads the JSON payload; model conversion stays in the feature repository.
   Future<String?> _loadFromSqlite(String userId, String name) async {
     final database = await AppDatabase.instance.database;
     final rows = await database.query(
@@ -113,7 +101,6 @@ class LocalCacheService {
     return rows.isEmpty ? null : rows.first['payload'] as String?;
   }
 
-  // On first access, moves an older SharedPreferences cache into SQLite.
   Future<String?> _loadValue(String userId, String name) async {
     final preferences = await SharedPreferences.getInstance();
     if (!supportsMobileSqlite) {

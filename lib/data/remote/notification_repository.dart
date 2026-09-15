@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/app_notification.dart';
 import '../local/local_cache_service.dart';
 
-// NOTIFICATION REPOSITORY: Uses Supabase first and local cache when offline.
 
 class NotificationRepository {
   const NotificationRepository(this.client);

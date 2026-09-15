@@ -6,7 +6,6 @@ import '../../models/reward_item.dart';
 import '../../models/reward_redemption.dart';
 import '../local/local_cache_service.dart';
 
-// REWARD REPOSITORY: Reads cached catalogues but performs redemptions in Supabase.
 
 class RewardRepository {
   const RewardRepository(this.client);

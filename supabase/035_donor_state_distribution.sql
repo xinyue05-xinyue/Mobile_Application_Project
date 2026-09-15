@@ -1,4 +1,3 @@
--- Collect only a donor's state for privacy-safe distribution reporting.
 alter table public.profiles
   add column if not exists state text;
 
