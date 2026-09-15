@@ -11,6 +11,7 @@ import '../../widgets/signed_in_identity_card.dart';
 import '../statistics_screen.dart';
 import 'feedback_inbox_screen.dart';
 import 'manage_rewards_screen.dart';
+import 'user_distribution_map_screen.dart';
 import 'user_directory_screen.dart';
 
 class SystemAdminDashboardScreen extends StatefulWidget {
@@ -248,6 +249,22 @@ class _SystemAdminDashboardScreenState
                   ],
                 ),
                 const SizedBox(height: 12),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.map_outlined),
+                    title: const Text('User & institution map'),
+                    subtitle: const Text(
+                      'View platform totals and mapped hospitals and organisations.',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const UserDistributionMapScreen(),
+                      ),
+                    ),
+                  ),
+                ),
                 Card(
                   child: ListTile(
                     leading: const Icon(Icons.redeem_outlined),

@@ -14,7 +14,7 @@ class EventRegistrationRepository {
         .map((entry) => entry.key)
         .toSet();
   }
-
+//supabase(qq)2.1
   Future<Map<String, String>> getMyRegistrationStatuses() async {
     final user = client.auth.currentUser;
     if (user == null) return const {};
@@ -29,6 +29,7 @@ class EventRegistrationRepository {
     };
   }
 
+  //supabase(qq)
   Future<void> register(String eventId) async {
     final user = client.auth.currentUser;
     if (user == null) throw const AuthException('Please log in again.');

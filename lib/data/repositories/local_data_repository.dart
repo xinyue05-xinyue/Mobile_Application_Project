@@ -115,7 +115,7 @@ class LocalDataRepository {
     });
   }
 
-  // Reads visible cached events and excludes cancelled or unpublished entries.
+  // sqlite(qq)
   Future<List<DonationEvent>> getEvents() async {
     final database = await _appDatabase.database;
     final rows = await database.query(
@@ -127,7 +127,7 @@ class LocalDataRepository {
     return rows.map(DonationEvent.fromMap).toList();
   }
 
-  // Inserts or replaces individual event records in the cache.
+  // sqlite(qq)
   Future<void> saveEvents(Iterable<DonationEvent> events) async {
     final database = await _appDatabase.database;
     final batch = database.batch();
@@ -142,7 +142,7 @@ class LocalDataRepository {
     await batch.commit(noResult: true);
   }
 
-  // Replaces the full event cache after a successful remote refresh.
+  //sqlite(qq)2.1
   Future<void> replaceEvents(Iterable<DonationEvent> events) async {
     final database = await _appDatabase.database;
     final syncedAt = DateTime.now().toUtc().toIso8601String();

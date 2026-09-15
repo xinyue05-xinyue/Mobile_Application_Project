@@ -138,8 +138,6 @@ class LocalCacheService {
     return legacyValue;
   }
 
-  // Cache names are grouped by business responsibility, making it easy to
-  // locate a module's local data during a demonstration or code review.
   String _tableFor(String name) {
     if (name == 'donor_profile' ||
         name == 'institution_profile' ||
@@ -171,7 +169,7 @@ class LocalCacheService {
         name.startsWith('venue_')) {
       return 'donation_event_local';
     }
-    // New uncategorised caches default to user access until explicitly routed.
+
     return 'user_access_local';
   }
 }

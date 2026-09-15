@@ -33,6 +33,64 @@ class SystemAdminRepository {
     );
   }
 
+  Future<SystemUserDistribution> getUserDistribution() async {
+    final results = await Future.wait([
+      client.from('profiles').select('id, role, state'),
+      client
+          .from('organisation_profiles')
+          .select(
+            'owner_id, display_name, address, contact_phone, '
+            'latitude, longitude',
+          )
+          .order('display_name'),
+    ]);
+    final profileRows = results[0];
+    final institutionRows = results[1];
+    final rolesById = <String, String>{};
+    var donors = 0;
+    var admins = 0;
+    var hospitals = 0;
+    var systemAdmins = 0;
+    final donorsByState = <String, int>{};
+    for (final row in profileRows) {
+      final id = row['id'] as String;
+      final role = row['role'] as String? ?? 'donor';
+      rolesById[id] = role;
+      switch (role) {
+        case 'admin':
+          admins++;
+        case 'hospital' || 'hospital_admin':
+          hospitals++;
+        case 'system_admin':
+          systemAdmins++;
+        default:
+          donors++;
+          final state = (row['state'] as String?)?.trim();
+          final label = state == null || state.isEmpty ? 'Unspecified' : state;
+          donorsByState[label] = (donorsByState[label] ?? 0) + 1;
+      }
+    }
+    final institutions = institutionRows
+        .map(
+          (row) => SystemInstitutionLocation.fromMap(
+            row,
+            rolesById[row['owner_id'] as String] ?? 'admin',
+          ),
+        )
+        .where((item) => item.latitude != null && item.longitude != null)
+        .toList();
+    return SystemUserDistribution(
+      counts: SystemUserCounts(
+        donors: donors,
+        admins: admins,
+        hospitals: hospitals,
+        systemAdmins: systemAdmins,
+      ),
+      institutions: institutions,
+      donorsByState: donorsByState,
+    );
+  }
+
   Future<List<SystemUserSummary>> getUserDirectory() async {
     final rows = await client
         .from('profiles')
@@ -97,6 +155,55 @@ class SystemAdminRepository {
 
   static DateTime? _date(Object? value) =>
       value == null ? null : DateTime.tryParse(value as String);
+}
+
+class SystemUserDistribution {
+  const SystemUserDistribution({
+    required this.counts,
+    required this.institutions,
+    required this.donorsByState,
+  });
+
+  final SystemUserCounts counts;
+  final List<SystemInstitutionLocation> institutions;
+  final Map<String, int> donorsByState;
+}
+
+class SystemInstitutionLocation {
+  const SystemInstitutionLocation({
+    required this.ownerId,
+    required this.displayName,
+    required this.role,
+    this.address,
+    this.contactPhone,
+    this.latitude,
+    this.longitude,
+  });
+
+  final String ownerId;
+  final String displayName;
+  final String role;
+  final String? address;
+  final String? contactPhone;
+  final double? latitude;
+  final double? longitude;
+
+  bool get isHospital => role == 'hospital' || role == 'hospital_admin';
+
+  String get roleLabel => isHospital ? 'Hospital' : 'Organisation';
+
+  factory SystemInstitutionLocation.fromMap(
+    Map<String, Object?> map,
+    String role,
+  ) => SystemInstitutionLocation(
+    ownerId: map['owner_id']! as String,
+    displayName: map['display_name']! as String,
+    role: role,
+    address: map['address'] as String?,
+    contactPhone: map['contact_phone'] as String?,
+    latitude: (map['latitude'] as num?)?.toDouble(),
+    longitude: (map['longitude'] as num?)?.toDouble(),
+  );
 }
 
 class SystemUserDetails {

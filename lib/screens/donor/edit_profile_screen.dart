@@ -6,6 +6,7 @@ import '../../app/theme/app_theme.dart';
 import '../../data/remote/profile_repository.dart';
 import '../../data/remote/supabase_service.dart';
 import '../../models/donor_profile.dart';
+import '../../models/malaysian_state.dart';
 import '../../utils/profile_validation.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController nameController;
   late final TextEditingController phoneController;
   String? bloodType;
+  String? selectedState;
   DateTime? dateOfBirth;
   late bool notificationsEnabled;
   bool isSaving = false;
@@ -33,6 +35,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     nameController = TextEditingController(text: widget.profile.fullName);
     phoneController = TextEditingController(text: widget.profile.phone);
     bloodType = widget.profile.bloodType;
+    selectedState = widget.profile.state;
     dateOfBirth = widget.profile.dateOfBirth;
     notificationsEnabled = widget.profile.notificationsEnabled;
   }
@@ -72,6 +75,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         fullName: nameController.text.trim(),
         bloodType: bloodType,
         phone: phoneController.text.trim(),
+        state: selectedState,
         dateOfBirth: dateOfBirth,
         notificationsEnabled: notificationsEnabled,
       );
@@ -124,6 +128,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   )
                   .toList(),
               onChanged: (value) => setState(() => bloodType = value),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: selectedState,
+              decoration: const InputDecoration(labelText: 'State'),
+              items: malaysiaStates
+                  .map((state) => DropdownMenuItem(
+                        value: state,
+                        child: Text(state),
+                      ))
+                  .toList(),
+              onChanged: (value) => setState(() => selectedState = value),
+              validator: (value) =>
+                  value == null ? 'State is required.' : null,
             ),
             const SizedBox(height: 16),
             TextFormField(

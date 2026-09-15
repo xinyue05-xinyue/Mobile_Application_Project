@@ -12,6 +12,7 @@ class AuthRepository {
     required String email,
     required String password,
     required String phone,
+    required String state,
     required DateTime dateOfBirth,
   }) async {
     final response = await client.auth.signUp(
@@ -20,6 +21,7 @@ class AuthRepository {
       data: {
         'full_name': fullName,
         'phone': phone,
+        'state': state,
         'date_of_birth': dateOfBirth.toIso8601String().split('T').first,
       },
     );

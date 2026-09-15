@@ -5,6 +5,7 @@ import '../data/remote/auth_repository.dart';
 import '../data/remote/auth_error_message.dart';
 import '../data/remote/supabase_service.dart';
 import '../widgets/my_darah_brand.dart';
+import '../models/malaysian_state.dart';
 import '../utils/profile_validation.dart';
 import 'donor/donor_shell.dart';
 import 'login_screen.dart';
@@ -26,6 +27,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   bool hidePassword = true;
   bool isLoading = false;
   DateTime? dateOfBirth;
+  String? selectedState;
 
   @override
   void dispose() {
@@ -55,6 +57,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         email: emailController.text.trim(),
         password: passwordController.text,
         phone: phoneController.text.trim(),
+        state: selectedState!,
         dateOfBirth: dateOfBirth!,
       );
       if (!mounted) return;
@@ -132,6 +135,23 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 labelText: 'Full name',
                 prefixIcon: Icon(Icons.person_outline),
               ),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: selectedState,
+              decoration: const InputDecoration(
+                labelText: 'State',
+                prefixIcon: Icon(Icons.location_on_outlined),
+              ),
+              items: malaysiaStates
+                  .map((state) => DropdownMenuItem(
+                        value: state,
+                        child: Text(state),
+                      ))
+                  .toList(),
+              onChanged: (value) => setState(() => selectedState = value),
+              validator: (value) =>
+                  value == null ? 'State is required.' : null,
             ),
             const SizedBox(height: 16),
             TextFormField(

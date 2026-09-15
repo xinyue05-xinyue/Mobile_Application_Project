@@ -110,6 +110,7 @@ class ProfileRepository {
     required String fullName,
     required String? bloodType,
     required String phone,
+    required String? state,
     required DateTime? dateOfBirth,
     required bool notificationsEnabled,
   }) async {
@@ -121,6 +122,7 @@ class ProfileRepository {
           'full_name': fullName,
           'blood_type': bloodType,
           'phone': phone.isEmpty ? null : phone,
+          'state': state,
           'date_of_birth': dateOfBirth?.toIso8601String().split('T').first,
           'notifications_enabled': notificationsEnabled,
         })

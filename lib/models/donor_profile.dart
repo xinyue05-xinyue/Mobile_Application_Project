@@ -5,6 +5,7 @@ class DonorProfile {
     required this.notificationsEnabled,
     this.bloodType,
     this.phone,
+    this.state,
     this.dateOfBirth,
     this.nextEligibleDate,
   });
@@ -13,6 +14,7 @@ class DonorProfile {
   final String fullName;
   final String? bloodType;
   final String? phone;
+  final String? state;
   final DateTime? dateOfBirth;
   final DateTime? nextEligibleDate;
   final bool notificationsEnabled;
@@ -22,6 +24,7 @@ class DonorProfile {
     fullName: map['full_name']! as String,
     bloodType: map['blood_type'] as String?,
     phone: map['phone'] as String?,
+    state: map['state'] as String?,
     dateOfBirth: _date(map['date_of_birth']),
     nextEligibleDate: _date(map['next_eligible_date']),
     notificationsEnabled: map['notifications_enabled'] as bool? ?? true,
